@@ -1,0 +1,26 @@
+# /usr/lib/systemd/system/netns-new@.service
+#
+# Create a new network namespace for %I.
+# Units that Requires this can access the netns through
+# the PID obtained with:
+# 
+# systemctl show --value -p MainPID netns-new@%i.service
+
+[Unit]
+Description=Create private network namespace
+Documentation=https://github.com/CarloWood/systemd-netns
+# This unit is started as a dependency of netns-outside@%i.service.
+RefuseManualStart=yes
+
+# Stop this service when no longer needed.
+StopWhenUnneeded=yes
+
+[Service]
+# Create a private, anonymous network namespace for this service.
+PrivateNetwork=yes
+
+# Keep the network namespace alive by keeping a process running.
+Type=forking
+ExecStart=sh -c 'exec sleep infinity &'
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=no

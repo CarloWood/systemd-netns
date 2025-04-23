@@ -1,0 +1,29 @@
+# /usr/lib/systemd/system/netns-outside@.service
+#
+[Unit]
+Description=Named network namespace %I
+Documentation=https://github.com/CarloWood/systemd-netns
+# This unit is started as a dependency of netns@%i.service.
+RefuseManualStart=yes
+
+# Create a new netns if needed.
+Requires=netns-new@%i.service
+After=netns-new@%i.service
+
+# Stop this service when no longer needed.
+StopWhenUnneeded=yes
+
+[Service]
+# We are not forking anything and we are only to be considered 'active' once all ExecStart's have finished.
+Type=oneshot
+# Stay active until stopped, which will run the ExecStop's to undo what the ExecStart's did.
+RemainAfterExit=yes
+
+# Load instance-specific environment variables before running ExecStart/ExecStop.
+EnvironmentFile=/etc/default/netns-%i
+
+# Command to run outside the namespace on start.
+ExecStart=/usr/bin/netnsinit %I up outside
+
+# Command to run outside the namespace on stop.
+ExecStop=/usr/bin/netnsinit %I down outside
