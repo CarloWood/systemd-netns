@@ -10,16 +10,16 @@ After=netns-outside@%i.service
 # We don't need the default dependencies, keep it minimal.
 DefaultDependencies=no
 
+# Create a private, anonymous network namespace for this service.
+#JoinsNamespaceOf=netns-new@%i.service
+
 [Service]
 Type=oneshot
 # Keep the unit active (and the namespace alive) after ExecStart finishes.
 RemainAfterExit=yes
 
-# Create a private, anonymous network namespace for this service.
-JoinsNamespaceOf=netns-new@%i.service
-
 # Load instance-specific environment variables before running ExecStart/ExecStop.
-EnvironmentFile=/etc/default/netns/%i.conf
+EnvironmentFile=/etc/conf.d/netns/%i.conf
 
 # Command to run inside the namespace on start.
 ExecStart=netnsinit %I up inside

@@ -20,7 +20,7 @@ Type=oneshot
 RemainAfterExit=yes
 
 # Load instance-specific environment variables before running ExecStart/ExecStop.
-EnvironmentFile=/etc/default/netns/%i.conf
+EnvironmentFile=/etc/conf.d/netns/%i.conf
 
 # Command to run outside the namespace on start.
 ExecStart=netnsinit %I up outside
