@@ -4,19 +4,19 @@
 Description=Network Namespace Container for %I
 Documentation=https://github.com/CarloWood/systemd-netns
 
-# Ensure netns@%i.service (outside setup) runs and finishes first.
+# Ensure netns-outside@%i.service (outside setup) is run first.
 Requires=netns-outside@%i.service
 After=netns-outside@%i.service
-# We don't need the default dependencies, keep it minimal.
-DefaultDependencies=no
 
 # Create a private, anonymous network namespace for this service.
-#JoinsNamespaceOf=netns-new@%i.service
+JoinsNamespaceOf=netns-new@%i.service
 
 [Service]
 Type=oneshot
 # Keep the unit active (and the namespace alive) after ExecStart finishes.
 RemainAfterExit=yes
+# Just having JoinsNamespaceOf= isn't enough.
+PrivateNetwork=true
 
 # Load instance-specific environment variables before running ExecStart/ExecStop.
 EnvironmentFile=/etc/conf.d/netns/%i.conf
@@ -25,6 +25,7 @@ EnvironmentFile=/etc/conf.d/netns/%i.conf
 ExecStart=netnsinit %I up inside
 
 # Command to run inside the namespace on stop.
+ExecStop=sh -c 'echo "stopping inside"'
 ExecStop=netnsinit %I down inside
 # Give the stop command some time to complete.
 TimeoutStopSec=30s
