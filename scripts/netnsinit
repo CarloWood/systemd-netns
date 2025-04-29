@@ -195,8 +195,7 @@ autoconfigure() {
 }
 
 inside_check() {
-        NSTYPE=$1
-	NSNAME=$2
+	NSNAME=$1
 
         GLOBAL_NETNS_ID="$(readlink /proc/1/ns/net)"
         if [[ -z "$GLOBAL_NETNS_ID" ]]; then
@@ -210,15 +209,15 @@ inside_check() {
           exit 1
         fi
 
-        NEWPID=$(systemctl show --value -p MainPID netns_name-$NSTYPE@$NSNAME.service)
+        NEWPID=$(systemctl show --value -p MainPID netns_name@$NSNAME.service)
         if [[ -z "$NEWPID" || "$NEWPID" == "0" || ! -h /proc/$NEWPID/ns/net ]]; then
-          echo "Failure to get PID of netns_name-$NSTYPE@$NSNAME.service."
+          echo "Failure to get PID of netns_name@$NSNAME.service."
           exit 1
         fi
 
         INSIDE_NETNS_ID="$(readlink /proc/$NEWPID/ns/net)"
         if [[ -z "$INSIDE_NETNS_ID" ]]; then
-          echo "Failure to get netns ID of netns_name$NSTYPE@$NSNAME.service."
+          echo "Failure to get netns ID of netns_name@$NSNAME.service."
         fi
 
         if [[ "$CURRENT_NETNS_ID" == "$GLOBAL_NETNS_ID" ]]; then
@@ -227,7 +226,7 @@ inside_check() {
         fi
 
         if [[ "$CURRENT_NETNS_ID" != "$INSIDE_NETNS_ID" ]]; then
-          echo "Current netns is not the same as the netns of netns_name-$NSTYPE@$NSNAME.service!"
+          echo "Current netns is not the same as the netns of netns_name@$NSNAME.service!"
           exit 1
         fi
 
@@ -240,7 +239,7 @@ if [[ $# != 4 ]]; then
 fi
 
 if [[ "$4" == "inside" ]]; then
-  inside_check "$1" "$2"
+  inside_check "$2"
 fi
 
 case "$1" in
