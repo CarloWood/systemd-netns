@@ -179,7 +179,7 @@ autoconfigure() {
 	DEVNAME_INSIDE=vn-${NSNAME}1
 	DEVNAME_OUTSIDE=vn-${NSNAME}0
 
-	source /etc/conf.d/netns/raw.conf
+	source /etc/conf.d/netns/default.conf
 	! source "/etc/conf.d/netns/${NSTYPE}.conf"
 #	! source "/etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf"
 

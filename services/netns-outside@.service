@@ -1,14 +1,17 @@
 # /usr/lib/systemd/system/netns-outside@.service
 #
+# For each <nstype> a symbolic link must be created:
+# sudo ln -s /usr/lib/systemd/system/netns-outside@.service /etc/lib/systemd/system/netns-outside-<nstype>@.service
+#
 [Unit]
-Description=Named network namespace %I
+Description=Setup %J in network namespace %I
 Documentation=https://github.com/CarloWood/systemd-netns
-# This unit is started as a dependency of netns@%i.service.
-RefuseManualStart=yes
+# This unit is started as a dependency of netns-<nstype>@%i.service.
+##RefuseManualStart=yes
 
 # Create a new netns if needed.
-Wants=netns-new@%i.service
-After=netns-new@%i.service
+Wants=netns-name@%i.service
+After=netns-name@%i.service
 
 # Stop this service when no longer needed.
 StopWhenUnneeded=yes
@@ -23,7 +26,8 @@ RemainAfterExit=yes
 EnvironmentFile=/etc/conf.d/netns/%i.conf
 
 # Command to run outside the namespace on start.
-ExecStart=netnsinit %I up outside
+#ExecStart=netnsinit %I up outside
+ExecStart=sh -c 'echo "%%i = %i; %%j = %j'
 
 # Command to run outside the namespace on stop.
-ExecStop=netnsinit %I down outside
+#ExecStop=netnsinit %I down outside
