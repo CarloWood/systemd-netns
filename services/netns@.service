@@ -1,15 +1,18 @@
 # /usr/lib/systemd/system/netns@.service
+#
+# For each NSTYPE a symbolic link must be created:
+# sudo ln -s /usr/lib/systemd/system/netns@.service /etc/systemd/system/netns-NSTYPE@.service
 
 [Unit]
-Description=Network Namespace Container for %I
+Description=Setup %J inside network namespace %I
 Documentation=https://github.com/CarloWood/systemd-netns
 
-# Ensure netns_outside@%i.service (outside setup) is run first.
-Requires=netns_outside@%i.service
-After=netns_outside@%i.service
+# Ensure netns_outside-%j@%i.service (outside setup) is run first.
+Requires=netns_outside-%j@%i.service
+After=netns_outside-%j@%i.service
 
 # Create a private, anonymous network namespace for this service.
-JoinsNamespaceOf=netns-new@%i.service
+JoinsNamespaceOf=netns_name@%i.service
 
 [Service]
 Type=oneshot
@@ -18,16 +21,18 @@ RemainAfterExit=yes
 # Just having JoinsNamespaceOf= isn't enough.
 PrivateNetwork=true
 
+# This is always sourced, it can be used to add values that are the same for a lot of %J values.
+EnvironmentFile=/etc/conf.d/netns/default.conf
 # Load instance-specific environment variables before running ExecStart/ExecStop.
-EnvironmentFile=/etc/conf.d/netns/%i.conf
+EnvironmentFile=/etc/conf.d/netns/%j.conf
+# This file may or may not exist.
+EnvironmentFile=-/etc/conf.d/netns/%j-%i.conf
 
 # Command to run inside the namespace on start.
-ExecStart=netnsinit %I up inside
+ExecStart=netnsinit "%J" "%I" up inside
 
 # Command to run inside the namespace on stop.
 ExecStop=sh -c 'echo "stopping inside"'
-ExecStop=netnsinit %I down inside
+ExecStop=netnsinit "%J" "%I" down inside
 # Give the stop command some time to complete.
 TimeoutStopSec=30s
-
-# No [Install] section needed as this is never enabled directly

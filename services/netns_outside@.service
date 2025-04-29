@@ -1,13 +1,13 @@
 # /usr/lib/systemd/system/netns_outside@.service
 #
-# For each <nstype> a symbolic link must be created:
-# sudo ln -s /usr/lib/systemd/system/netns_outside@.service /etc/systemd/system/netns_outside-<nstype>@.service
+# For each NSTYPE a symbolic link must be created:
+# sudo ln -s /usr/lib/systemd/system/netns_outside@.service /etc/systemd/system/netns_outside-NSTYPE@.service
 #
 [Unit]
-Description=Setup %J in network namespace %I
+Description=Setup %J for but outside network namespace %I
 Documentation=https://github.com/CarloWood/systemd-netns
-# This unit is started as a dependency of netns-<nstype>@%i.service.
-##RefuseManualStart=yes
+# This unit is started as a dependency of netns-%j@%i.service.
+RefuseManualStart=yes
 
 # Create a new netns if needed.
 Wants=netns_name@%i.service
@@ -22,12 +22,15 @@ Type=oneshot
 # Stay active until stopped, which will run the ExecStop's to undo what the ExecStart's did.
 RemainAfterExit=yes
 
+# This is always sourced, it can be used to add values that are the same for a lot of %J values.
+EnvironmentFile=/etc/conf.d/netns/default.conf
 # Load instance-specific environment variables before running ExecStart/ExecStop.
-EnvironmentFile=/etc/conf.d/netns/%i.conf
+EnvironmentFile=/etc/conf.d/netns/%j.conf
+# This file may or may not exist.
+EnvironmentFile=-/etc/conf.d/netns/%j-%i.conf
 
 # Command to run outside the namespace on start.
-#ExecStart=netnsinit %I up outside
-ExecStart=sh -c 'echo "%%i = %i; %%j = %j"'
+ExecStart=netnsinit "%J" "%I" up outside
 
 # Command to run outside the namespace on stop.
-#ExecStop=netnsinit %I down outside
+ExecStop=netnsinit "%J" "%I" down outside
