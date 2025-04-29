@@ -4,9 +4,9 @@
 Description=Network Namespace Container for %I
 Documentation=https://github.com/CarloWood/systemd-netns
 
-# Ensure netns-outside@%i.service (outside setup) is run first.
-Requires=netns-outside@%i.service
-After=netns-outside@%i.service
+# Ensure netns_outside@%i.service (outside setup) is run first.
+Requires=netns_outside@%i.service
+After=netns_outside@%i.service
 
 # Create a private, anonymous network namespace for this service.
 JoinsNamespaceOf=netns-new@%i.service

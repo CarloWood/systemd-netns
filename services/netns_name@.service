@@ -14,12 +14,12 @@
 Description=Create network namespace %I
 Documentation=https://github.com/CarloWood/systemd-netns
 
-# This unit can only be started as a dependency of netns-outside-<nstype>@%i.service
+# This unit can only be started as a dependency of netns_outside-<nstype>@%i.service
 # (which in turn can only be started as dependency of netns-<nstype>@%i.service).
 RefuseManualStart=yes
 RefuseManualStop=yes
 
-# This unit can be stopped when the last netns-outside@<nstype>-%i.service is stopped.
+# This unit can be stopped when the last netns_outside@<nstype>-%i.service is stopped.
 StopWhenUnneeded=yes
 
 [Service]
