@@ -4,7 +4,7 @@
 # sudo ln -s /usr/lib/systemd/system/netns_outside@.service /etc/systemd/system/netns_outside-NSTYPE@.service
 #
 [Unit]
-Description=Setup %J for but outside network namespace %I
+Description=Setup %J for, but outside, network namespace %I
 Documentation=https://github.com/CarloWood/systemd-netns
 # This unit is started as a dependency of netns-%j@%i.service.
 RefuseManualStart=yes

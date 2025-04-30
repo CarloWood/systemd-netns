@@ -209,24 +209,14 @@ inside_check() {
           exit 1
         fi
 
-        NEWPID=$(systemctl show --value -p MainPID netns_name@$NSNAME.service)
-        if [[ -z "$NEWPID" || "$NEWPID" == "0" || ! -h /proc/$NEWPID/ns/net ]]; then
-          echo "Failure to get PID of netns_name@$NSNAME.service."
-          exit 1
-        fi
-
-        INSIDE_NETNS_ID="$(readlink /proc/$NEWPID/ns/net)"
-        if [[ -z "$INSIDE_NETNS_ID" ]]; then
-          echo "Failure to get netns ID of netns_name@$NSNAME.service."
-        fi
-
         if [[ "$CURRENT_NETNS_ID" == "$GLOBAL_NETNS_ID" ]]; then
           echo "Current netns is the global netns!"
           exit 1
         fi
 
-        if [[ "$CURRENT_NETNS_ID" != "$INSIDE_NETNS_ID" ]]; then
-          echo "Current netns is not the same as the netns of netns_name@$NSNAME.service!"
+        CURRENT_NETNS_NAME="$(ip netns identify)"
+        if [[ -z "$CURRENT_NETNS_NAME" || "$CURRENT_NETNS_NAME" != "$NSNAME" ]]; then
+          echo "Current netns (\"$CURRENT_NETNS_NAME\") is not equal to the required netns \"$NSNAME\"!"
           exit 1
         fi
 
