@@ -12,14 +12,12 @@ Requires=netns_outside-%j@%i.service
 After=netns_outside-%j@%i.service
 
 # Join the named network namespace %I for this service (this one does the 'inside' stuff).
-JoinsNamespaceOf=netns_name@%i.service
+NetworkNamespacePath=/var/run/netns/%i
 
 [Service]
 Type=oneshot
 # Keep the unit active (and the namespace alive) after ExecStart finishes.
 RemainAfterExit=yes
-# Just having JoinsNamespaceOf= isn't enough.
-PrivateNetwork=true
 
 # This is always sourced, it can be used to add values that are the same for a lot of %J values.
 EnvironmentFile=/etc/conf.d/netns/default.conf
