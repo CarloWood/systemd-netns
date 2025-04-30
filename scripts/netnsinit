@@ -214,6 +214,9 @@ inside_check() {
           exit 1
         fi
 
+        ip netns list
+        ip netns pids $NSNAME
+
         CURRENT_NETNS_NAME="$(ip netns identify)"
         if [[ -z "$CURRENT_NETNS_NAME" || "$CURRENT_NETNS_NAME" != "$NSNAME" ]]; then
           echo "Current netns (\"$CURRENT_NETNS_NAME\") is not equal to the required netns \"$NSNAME\"!"
