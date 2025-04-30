@@ -11,7 +11,7 @@ Documentation=https://github.com/CarloWood/systemd-netns
 Requires=netns_outside-%j@%i.service
 After=netns_outside-%j@%i.service
 
-# Create a named network namespace for this service with name %I.
+# Join the named network namespace %I for this service (this one does the 'inside' stuff).
 JoinsNamespaceOf=netns_name@%i.service
 
 [Service]
