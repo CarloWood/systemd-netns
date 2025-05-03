@@ -70,7 +70,7 @@ while IFS= read -r -d $'\0' conf_file; do
     continue
   fi
 
-  echo "Found NSTYPE: '$nstype'"
+  echo "Checking NSTYPE '$nstype'."
 
   # Define expected destination file names and paths.
   dest_name_netns="netns-${nstype}@.service"
@@ -85,8 +85,6 @@ while IFS= read -r -d $'\0' conf_file; do
   # --- Process netns@.service target ---
   source_file="$TARGET_SERVICE_NETNS"
   dest_path="$dest_path_netns"
-
-  echo "  Ensuring service file '$dest_path' exists and is up-to-date."
 
   # Check if the destination exists and is a symlink.
   if [[ -L "$dest_path" ]]; then
@@ -123,12 +121,9 @@ while IFS= read -r -d $'\0' conf_file; do
     fi
   fi
 
-
   # --- Process netns_outside@.service target ---
   source_file="$TARGET_SERVICE_OUTSIDE"
   dest_path="$dest_path_outside"
-
-  echo "  Ensuring service file '$dest_path' exists and is up-to-date"
 
   # Check if the destination exists and is a symlink.
   if [[ -L "$dest_path" ]]; then
@@ -170,15 +165,17 @@ done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
 # --- Clean Up Stale Files/Symlinks ---
 
 echo "Cleaning up stale service files in '$SYSTEMD_ETC_DIR'..."
+stale_units_found=false
 
 # Find all files or symlinks in the target directory matching our patterns.
 # We use -L with find to ensure we check symlinks correctly, but remove based on path.
-find "$SYSTEMD_ETC_DIR" -maxdepth 1 -L \( -name 'netns-*@.service' -o -name 'netns_outside-*@.service' \) -print0 | while IFS= read -r -d $'\0' file_path; do
+find "$SYSTEMD_ETC_DIR" -maxdepth 1 \( -name 'netns-*@.service' -o -name 'netns_outside-*@.service' \) -print0 | while IFS= read -r -d $'\0' file_path; do
   file_name=$(basename "$file_path")
 
   # Check if the current file's basename is in our list of expected files.
   if [[ ! -v expected_files["$file_name"] ]]; then
     echo "  Removing stale $file_path"
+    stale_units_found=true
     # The path might point to a symlink or a regular file. rm works for both.
     if rm "$file_path"; then
       needs_daemon_reload=true
@@ -190,6 +187,10 @@ find "$SYSTEMD_ETC_DIR" -maxdepth 1 -L \( -name 'netns-*@.service' -o -name 'net
   #   echo "  Keeping required file: $file_path"
   fi
 done
+
+if ! $stale_units_found; then
+  echo "  No stale units found."
+fi
 
 # --- Reset Failed Units ---
 
@@ -234,7 +235,6 @@ while IFS= read -r unit_name; do
   fi
 done < <(systemctl list-units --all --no-legend --state=failed 'netns@.service' 'netns_outside@.service' | awk '{print $1}')
 
-
 if ! $failed_units_found; then
   echo "  No relevant failed units found."
 fi
@@ -252,5 +252,8 @@ if $needs_daemon_reload; then
     fi
 fi
 
-echo "Script finished."
+if [[ $exit_value == 0 ]]; then
+  echo "Script finished successfully."
+fi
+
 exit $exit_value
