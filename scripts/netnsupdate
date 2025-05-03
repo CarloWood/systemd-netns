@@ -1,15 +1,19 @@
 #! /bin/bash
 
-# Run this script to update the symbolic links regarding netns
-# in /etc/systemd/system. This script also fixes a possible
-# problem due to the bug https://github.com/systemd/systemd/issues/37329
-# if any of the units is in a failed state, by reset that state.
+# Run this script to update the service file copies regarding netns
+# in /etc/systemd/system. This script ensures that copies of the base
+# service files exist for each configured NSTYPE and removes stale ones.
+#
+# It also fixes a possible problem due to the bug
+# https://github.com/systemd/systemd/issues/37329 if any of the units
+# is in a failed state, by resetting that state; although that bug is
+# related to symbolic links and we can't use those anyway.
 
 # Exit on error, unset variable, or pipe failure.
 set -euo pipefail
 
 CONF_DIR="/etc/conf.d/netns"
-SYMLINK_DIR="/etc/systemd/system"
+SYSTEMD_ETC_DIR="/etc/systemd/system"
 TARGET_SERVICE_NETNS="/usr/lib/systemd/system/netns@.service"
 TARGET_SERVICE_OUTSIDE="/usr/lib/systemd/system/netns_outside@.service"
 
@@ -25,8 +29,8 @@ if [[ ! -d "$CONF_DIR" ]]; then
   exit 1
 fi
 
-if [[ ! -d "$SYMLINK_DIR" ]]; then
-  echo "Error: Systemd system directory '$SYMLINK_DIR' not found." >&2
+if [[ ! -d "$SYSTEMD_ETC_DIR" ]]; then
+  echo "Error: Systemd system directory '$SYSTEMD_ETC_DIR' not found." >&2
   exit 1
 fi
 
@@ -39,18 +43,20 @@ if [[ ! -f "$TARGET_SERVICE_OUTSIDE" ]]; then
   exit 1
 fi
 
-# --- Process Configuration Files and Create Symlinks ---
+# --- Process Configuration Files and Manage Service File Copies ---
 
-# Use an associative array to keep track of the symlinks that *should* exist.
-# Keys are the symlink basenames, values can be anything (e.g., 1).
-declare -A expected_symlinks
+# Use an associative array to keep track of the files that *should* exist.
+# Keys are the file basenames, values can be anything (e.g., 1).
+declare -A expected_files
+needs_daemon_reload=false
+exit_value=0
 
 echo "Processing configuration files in '$CONF_DIR'..."
 
 # Use process substitution and null delimiters for safe filename handling.
 while IFS= read -r -d $'\0' conf_file; do
   filename=$(basename "$conf_file")
-  # Skip default.conf explicitly
+  # 'default' is not an NSTYPE.
   if [[ "$filename" == "default.conf" ]]; then
     continue
   fi
@@ -59,58 +65,130 @@ while IFS= read -r -d $'\0' conf_file; do
   nstype="${filename%.conf}"
 
   if [[ -z "$nstype" ]]; then
-      echo "Warning: Could not extract NSTYPE from '$filename'. Skipping." >&2
-      continue
+    echo "Warning: Could not extract NSTYPE from '$filename'. Skipping." >&2
+    exit_value=1
+    continue
   fi
 
   echo "Found NSTYPE: '$nstype'"
 
-  # Define expected symlink names and paths.
-  link_name_netns="netns-${nstype}@.service"
-  link_path_netns="${SYMLINK_DIR}/${link_name_netns}"
-  link_name_outside="netns_outside-${nstype}@.service"
-  link_path_outside="${SYMLINK_DIR}/${link_name_outside}"
+  # Define expected destination file names and paths.
+  dest_name_netns="netns-${nstype}@.service"
+  dest_path_netns="${SYSTEMD_ETC_DIR}/${dest_name_netns}"
+  dest_name_outside="netns_outside-${nstype}@.service"
+  dest_path_outside="${SYSTEMD_ETC_DIR}/${dest_name_outside}"
 
-  # Add expected symlink names to our tracking array.
-  expected_symlinks["$link_name_netns"]=1
-  expected_symlinks["$link_name_outside"]=1
+  # Add expected file names to our tracking array.
+  expected_files["$dest_name_netns"]=1
+  expected_files["$dest_name_outside"]=1
 
-  # Ensure the first symlink exists (create or update).
-  echo "  Ensuring symlink '$link_path_netns' -> '$TARGET_SERVICE_NETNS'"
-  if ! ln -sf "$TARGET_SERVICE_NETNS" "$link_path_netns"; then
-      echo "  Error creating/updating symlink '$link_path_netns'. Check permissions?" >&2
-      # Continue processing other files despite error? Or exit? Let's continue.
+  # --- Process netns@.service target ---
+  source_file="$TARGET_SERVICE_NETNS"
+  dest_path="$dest_path_netns"
+
+  echo "  Ensuring service file '$dest_path' exists and is up-to-date."
+
+  # Check if the destination exists and is a symlink.
+  if [[ -L "$dest_path" ]]; then
+    echo "  Warning: '$dest_path' exists as a symlink. Removing it."
+    if rm "$dest_path"; then
+      needs_daemon_reload=true
+    else
+      echo "  Error removing symlink '$dest_path'. Check permissions? Skipping update." >&2
+      exit_value=1
+      continue # Skip processing this specific file pair.
+    fi
   fi
 
-  # Ensure the second symlink exists (create or update).
-  echo "  Ensuring symlink '$link_path_outside' -> '$TARGET_SERVICE_OUTSIDE'"
-  if ! ln -sf "$TARGET_SERVICE_OUTSIDE" "$link_path_outside"; then
-      echo "  Error creating/updating symlink '$link_path_outside'. Check permissions?" >&2
-      # Continue processing other files despite error? Or exit? Let's continue.
+  # Check if the destination file exists and if it differs from the source.
+  should_copy=false
+  if [[ ! -f "$dest_path" ]]; then
+    echo "    Creating '$dest_path'."
+    should_copy=true
+  elif ! cmp -s "$source_file" "$dest_path"; then
+    echo "    Updating '$dest_path' as content differs from source."
+    should_copy=true
+  # else
+  #   echo "    '$dest_path' is already up-to-date."
+  fi
+
+  if $should_copy; then
+    # Copy the file, preserving metadata like permissions and timestamps if possible.
+    if cp -p "$source_file" "$dest_path"; then
+      needs_daemon_reload=true
+    else
+      echo "  Error copying '$source_file' to '$dest_path'. Check permissions?" >&2
+      # Continue processing other files despite error; but exit with an error value.
+      exit_value=1
+    fi
+  fi
+
+
+  # --- Process netns_outside@.service target ---
+  source_file="$TARGET_SERVICE_OUTSIDE"
+  dest_path="$dest_path_outside"
+
+  echo "  Ensuring service file '$dest_path' exists and is up-to-date"
+
+  # Check if the destination exists and is a symlink.
+  if [[ -L "$dest_path" ]]; then
+    echo "  Warning: '$dest_path' exists as a symlink. Removing it."
+    if rm "$dest_path"; then
+      needs_daemon_reload=true
+    else
+      echo "  Error removing symlink '$dest_path'. Check permissions? Skipping update." >&2
+      exit_value=1
+      continue # Skip processing this specific file pair
+    fi
+  fi
+
+  # Check if the destination file exists and if it differs from the source.
+  should_copy=false
+  if [[ ! -f "$dest_path" ]]; then
+    echo "    Creating '$dest_path'."
+    should_copy=true
+  elif ! cmp -s "$source_file" "$dest_path"; then
+    echo "    Updating '$dest_path' as content differs from source."
+    should_copy=true
+  # else # Optional: Log files that are already up-to-date
+  #   echo "    '$dest_path' is already up-to-date."
+  fi
+
+  if $should_copy; then
+    # Copy the file, preserving metadata like permissions and timestamps if possible.
+    if cp -p "$source_file" "$dest_path"; then
+      needs_daemon_reload=true
+    else
+      echo "  Error copying '$source_file' to '$dest_path'. Check permissions?" >&2
+      exit_value=1
+      # Continue processing other files despite error? Yes.
+    fi
   fi
 
 done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
 
-# --- Clean Up Stale Symlinks ---
+# --- Clean Up Stale Files/Symlinks ---
 
-echo "Cleaning up stale symlinks in '$SYMLINK_DIR'..."
-needs_daemon_reload=false
+echo "Cleaning up stale service files in '$SYSTEMD_ETC_DIR'..."
 
-# Find all symlinks in the target directory pointing to our specific service files.
-find "$SYMLINK_DIR" -maxdepth 1 -type l \( -lname "$TARGET_SERVICE_NETNS" -o -lname "$TARGET_SERVICE_OUTSIDE" \) -print0 | while IFS= read -r -d $'\0' symlink_path; do
-    symlink_name=$(basename "$symlink_path")
+# Find all files or symlinks in the target directory matching our patterns.
+# We use -L with find to ensure we check symlinks correctly, but remove based on path.
+find "$SYSTEMD_ETC_DIR" -maxdepth 1 -L \( -name 'netns-*@.service' -o -name 'netns_outside-*@.service' \) -print0 | while IFS= read -r -d $'\0' file_path; do
+  file_name=$(basename "$file_path")
 
-    # Check if the current symlink's basename is in our list of expected symlinks.
-    if [[ ! -v expected_symlinks["$symlink_name"] ]]; then
-        echo "  Removing stale symlink: $symlink_path"
-        if rm "$symlink_path"; then
-            needs_daemon_reload=true
-        else
-            echo "  Error removing symlink '$symlink_path'. Check permissions?" >&2
-        fi
-    # else # Optional: Log kept links.
-    #   echo "  Keeping required symlink: $symlink_path"
+  # Check if the current file's basename is in our list of expected files.
+  if [[ ! -v expected_files["$file_name"] ]]; then
+    echo "  Removing stale $file_path"
+    # The path might point to a symlink or a regular file. rm works for both.
+    if rm "$file_path"; then
+      needs_daemon_reload=true
+    else
+      echo "  Error removing stale '$file_path'. Check permissions?" >&2
+      exit_value=1
     fi
+  # else # Optional: Log kept files.
+  #   echo "  Keeping required file: $file_path"
+  fi
 done
 
 # --- Reset Failed Units ---
@@ -119,37 +197,60 @@ echo "Checking for and resetting failed units..."
 failed_units_found=false
 
 # Use process substitution to read unit names safely.
+# Look for failed units potentially created from our template copies.
+# Note: Systemd might track failures based on the original template name too.
+# Checking for both specific instances and the template might be necessary in complex cases,
+# but checking for instantiated units is usually sufficient.
 while IFS= read -r unit_name; do
   # Skip empty lines potentially generated by awk/systemctl.
   [[ -z "$unit_name" ]] && continue
 
-  failed_units_found=true
-  echo "  Found failed unit: '$unit_name'. Resetting..."
-  if systemctl reset-failed "$unit_name"; then
-    echo "    Successfully reset '$unit_name'."
-  else
-    # Log error but continue; reset-failed might fail if state changed.
-    echo "    Warning: Failed to reset '$unit_name'. It might no longer be in a failed state." >&2
+  # Check if the unit name matches our expected patterns - defense against unrelated failed units
+  if [[ "$unit_name" == netns-*@*.service || "$unit_name" == netns_outside-*@*.service ]]; then
+    failed_units_found=true
+    echo "  Found failed unit: '$unit_name'. Resetting..."
+    if systemctl reset-failed "$unit_name"; then
+      echo "    Successfully reset '$unit_name'."
+    else
+      # Log error but continue; reset-failed might fail if state changed.
+      echo "    Warning: Failed to reset '$unit_name'. It might no longer be in a failed state." >&2
+    fi
+  # else # Optional: Log skipped units
+  #   echo "  Skipping unrelated failed unit: '$unit_name'"
   fi
-done < <(systemctl list-units --all --no-legend --state=failed 'netns@*.service' 'netns_outside@*.service' | awk '{print $1}')
+done < <(systemctl list-units --all --no-legend --state=failed 'netns-*@*.service' 'netns_outside-*@*.service' | awk '{print $1}')
+
+# Check template failures as well, just in case (less common for this issue).
+while IFS= read -r unit_name; do
+  [[ -z "$unit_name" ]] && continue
+  if [[ "$unit_name" == netns@.service || "$unit_name" == netns_outside@.service ]]; then
+    failed_units_found=true # Consider it found if the base template failed
+    echo "  Found failed base template unit: '$unit_name'. Resetting..."
+    if systemctl reset-failed "$unit_name"; then
+      echo "    Successfully reset '$unit_name'."
+    else
+      echo "    Warning: Failed to reset '$unit_name'." >&2
+    fi
+  fi
+done < <(systemctl list-units --all --no-legend --state=failed 'netns@.service' 'netns_outside@.service' | awk '{print $1}')
+
 
 if ! $failed_units_found; then
-    echo "  No relevant failed units found."
+  echo "  No relevant failed units found."
 fi
 
 # --- Final Steps ---
 
-# Reload systemd daemon configuration if symlinks were removed.
-# Creating/updating symlinks with ln -sf doesn't strictly require daemon-reload
-# unless it affects unit dependencies or ordering, but removing definitely does.
+# Reload systemd daemon configuration if any files were created, updated, or removed.
 if $needs_daemon_reload; then
     echo "Reloading systemd daemon configuration..."
     if systemctl daemon-reload; then
         echo "  Systemd daemon reloaded successfully."
     else
         echo "  Error reloading systemd daemon configuration." >&2
+        exit_value=1
     fi
 fi
 
 echo "Script finished."
-exit 0
+exit $exit_value
