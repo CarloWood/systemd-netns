@@ -193,8 +193,6 @@ fi
 
 # --- Reset Failed Units ---
 
-failed_units_found=false
-
 # Use process substitution to read unit names safely.
 # Look for failed units potentially created from our template copies.
 # Note: Systemd might track failures based on the original template name too.
@@ -206,7 +204,6 @@ while IFS= read -r unit_name; do
 
   # Check if the unit name matches our expected patterns - defense against unrelated failed units
   if [[ "$unit_name" == netns-*@*.service || "$unit_name" == netns_outside-*@*.service ]]; then
-    failed_units_found=true
     if systemctl reset-failed "$unit_name"; then
       echo "Reset failed state on unit '$unit_name'."
     else
@@ -220,7 +217,6 @@ done < <(systemctl list-units --all --no-legend --state=failed 'netns-*@*.servic
 while IFS= read -r unit_name; do
   [[ -z "$unit_name" ]] && continue
   if [[ "$unit_name" == netns@.service || "$unit_name" == netns_outside@.service ]]; then
-    failed_units_found=true     # Consider it found if the base template failed.
     if systemctl reset-failed "$unit_name"; then
       echo "Reset failed state on unit '$unit_name'."
     else
@@ -228,10 +224,6 @@ while IFS= read -r unit_name; do
     fi
   fi
 done < <(systemctl list-units --all --no-legend --state=failed 'netns@.service' 'netns_outside@.service' | awk '{print $1}')
-
-if ! $failed_units_found; then
-  echo "  No relevant failed units found."
-fi
 
 # --- Final Steps ---
 
