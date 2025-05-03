@@ -164,32 +164,24 @@ done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
 
 # --- Clean Up Stale Files/Symlinks ---
 
-echo "Cleaning up stale service files in '$SYSTEMD_ETC_DIR'..."
-stale_units_found=false
-
 # Find all files or symlinks in the target directory matching our patterns.
 while IFS= read -r -d $'\0' file_path; do
   file_name=$(basename "$file_path")
 
   # Check if the current file's basename is in our list of expected files.
   if [[ ! -v expected_files["$file_name"] ]]; then
-    echo "  Removing stale $file_path"
-    stale_units_found=true
     # The path might point to a symlink or a regular file. rm works for both.
     if rm "$file_path"; then
+      echo "Removed stale service file $file_path"
       needs_daemon_reload=true
     else
-      echo "  Error removing stale '$file_path'. Check permissions?" >&2
+      echo "Error removing stale '$file_path'. Check permissions?" >&2
       error=true
     fi
   # else # Optional: Log kept files.
   #   echo "  Keeping required file: $file_path"
   fi
 done < <(find "$SYSTEMD_ETC_DIR" -maxdepth 1 \( -name 'netns-*@.service' -o -name 'netns_outside-*@.service' \) -print0)
-
-if ! $stale_units_found; then
-  echo "  No stale units found."
-fi
 
 # --- Reset Failed Units ---
 
