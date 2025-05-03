@@ -13,6 +13,8 @@ install:
 	install --owner=root --group=root --mode=644 configs/default.conf $(DESTDIR)/etc/conf.d/netns/
 	install --owner=root --group=root --mode=644 configs/nat.conf $(DESTDIR)/etc/conf.d/netns/
 	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)/usr/sbin/
+	install --owner=root --group=root --mode=755 scripts/netnsupdate $(DESTDIR)/usr/sbin/
+	/usr/sbin/netnsupdate
 	systemctl daemon-reload || true
 
 uninstall:
@@ -24,3 +26,4 @@ uninstall:
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_outside@.service
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_name@.service
 	rm -f $(DESTDIR)/usr/sbin/netnsinit
+	rm -f $(DESTDIR)/usr/sbin/netnsupdate

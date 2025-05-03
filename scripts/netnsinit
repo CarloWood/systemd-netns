@@ -169,25 +169,28 @@ autoconfigure_mvbr_down_inside() {
 }
 
 autoconfigure() {
-	NSTYPE=$1
-	NSNAME=$2
-	UPDOWN=$3
-	INOUT=$4
+  NSTYPE=$1
+  NSNAME=$2
+  UPDOWN=$3
+  INOUT=$4
 
-	echo "Starting autoconfigure ${NSTYPE} ${UPDOWN} ${INOUT}"
+  echo "Starting autoconfigure ${NSTYPE} ${UPDOWN} ${INOUT}"
 
-	DEVNAME_INSIDE=vn-${NSNAME}1
-	DEVNAME_OUTSIDE=vn-${NSNAME}0
+  # This is always sourced, it can be used to add values that are the same for a lot of %J values.
+  source /etc/conf.d/netns/default.conf
+  # Load instance-specific environment variables.
+  source /etc/conf.d/netns/${NSTYPE}.conf
+  # This file may or may not exist.
+  ! source /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf
 
-	if type -t autoconfigure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
-#		autoconfigure_"${NSTYPE}_${UPDOWN}_${INOUT}" "$@"
-                ip address
-		echo "Autoconfiguration ${NSTYPE} ${UPDOWN} ${INOUT} finished."
-	else
-		echo "No configuration required."
-	fi
+  if type -t configure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
+    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "$@"
+    echo "Autoconfiguration ${NSTYPE} ${UPDOWN} ${INOUT} finished."
+  else
+    echo "No configuration required."
+  fi
 
-	return 0
+  return 0
 }
 
 inside_check() {
