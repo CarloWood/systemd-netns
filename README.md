@@ -27,24 +27,24 @@ The contents of both `.conf` files together must specify the following bash
 functions:
 
 ```
-function configure_macvlan_up_outside() {
+function configure_NSTYPE_up_outside() {
 }
 
-function configure_macvlan_up_inside() {
+function configure_NSTYPE_up_inside() {
 }
 
-function configure_macvlan_down_inside() {
+function configure_NSTYPE_down_inside() {
 }
 
-function configure_macvlan_down_outside() {
+function configure_NSTYPE_down_outside() {
 }
 ```
 
 The `_outside` functions are called while outside the network namespace,
 the `_inside` functions are called while inside the network namespace.
-When starting a service, `configure_macvlan_up_outside` is called first
-then `configure_macvlan_up_inside`. When stopping the service `configure_macvlan_down_inside`
-is called first and then `configure_macvlan_down_outside`.
+When starting a service, `configure_NSTYPE_up_outside` is called first
+then `configure_NSTYPE_up_inside`. When stopping the service `configure_NSTYPE_down_inside`
+is called first and then `configure_NSTYPE_down_outside`.
 
 All functions have the network namespace passed as only argument.
 It is recommended to use `NS_NAME="$1"` at the top of a function if
