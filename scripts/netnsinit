@@ -1,171 +1,11 @@
-#!/bin/bash
+#! /bin/bash
 
 set -e
 set -x
 display_usage() {
-	echo "Auto configuration for systemd-named-netns."
-	echo -e "\nUsage:\n\t$0 network-type ns-name [optional params] [up|down] [inside|outside]\n"
-	echo "Note: you may need root privileges for this."
-}
-
-############## configure triggers ###############
-
-autoconfigure_tunnel_up_outside() {
-	# precaution
-	! ip link delete "${DEVNAME_OUTSIDE}"
-	! ip link delete "${DEVNAME_INSIDE}"
-
-	# setup pseudo wire
-	ip link add "${DEVNAME_OUTSIDE}" type veth peer name "${DEVNAME_INSIDE}"
-	! tc qdisc del dev "${DEVNAME_INSIDE}" root
-	if [ -n "$MACADDR" ]; then
-		ip link set "${DEVNAME_INSIDE}" address "${MACADDR}"
-	fi
-	! ip link set "${DEVNAME_INSIDE}" netns "${NSNAME}" # apparently the link may already have the netns set
-	ip link set "${DEVNAME_OUTSIDE}" up
-	ip -n "${NSNAME}" link set "${DEVNAME_INSIDE}" up
-
-	# add ipv4 address at global end
-	if [ -n "${IPADDR_OUTSIDE}" ]; then
-		ip address add "${IPADDR_OUTSIDE}" dev "${DEVNAME_OUTSIDE}"
-	fi
-
-	return 0 # additional precation against "set -e" in case of future mods of this function
-}
-
-autoconfigure_tunnel_up_inside() {
-	# add ipv4 address at netns end
-	if [ -n "${IPADDR}" ]; then
-		ip address add "${IPADDR}" dev "${DEVNAME_INSIDE}"
-	fi
-
-	# setup default route
-	if [ -n "${GATEWAY}" ]; then
-		ip route add default via "${GATEWAY%%/*}" dev "${DEVNAME_INSIDE}" onlink
-	fi
-
-	# if DHCP is configured
-	if [ "${DHCPV4}" == "1" ]; then
-		! mkdir -p /var/run/netns
-		dhclient -v -i "${DEVNAME_INSIDE}" -nw -pf "/var/run/netns/dhclient-${NSNAME}.pid"
-	fi
-
-	return 0
-}
-
-autoconfigure_tunnel_down_inside() {
-	# kill DHCP client
-	# do not run in ExecStartPost to prevent forked dhclient from being killed
-	! kill -15 "$(cat /var/run/netns/dhclient-"${NSNAME}".pid)"
-	! rm "/var/run/netns/dhclient-${NSNAME}.pid"
-}
-
-autoconfigure_tunnel_down_outside() {
-	ip link delete "${DEVNAME_OUTSIDE}"
-}
-
-autoconfigure_bridge_up_outside() {
-	autoconfigure_tunnel_up_outside
-
-	ip link set "${DEVNAME_OUTSIDE}" master "${BRIDGE}"
-}
-
-autoconfigure_bridge_up_inside() {
-	autoconfigure_tunnel_up_inside
-}
-
-autoconfigure_bridge_down_inside() {
-	autoconfigure_tunnel_down_inside
-}
-
-autoconfigure_bridge_down_outside() {
-	autoconfigure_tunnel_down_outside
-}
-
-autoconfigure_nat_up_outside() {
-	autoconfigure_tunnel_up_outside
-
-	# allow forwarding to make all these things work
-	sysctl net.ipv4.ip_forward=1
-	sysctl net.ipv6.conf.all.forwarding=1
-
-	# set up NAT
-	# in POSTROUTING we cannot select via source interface, so we use source ip address here
-	iptables -t nat -A POSTROUTING -s "${IPADDR_OUTSIDE}" -j MASQUERADE
-
-	if [ "${NAT_ACCEPT_TRAFFIC}" == "1" ]; then
-		iptables -A FORWARD -i "${DEVNAME_OUTSIDE}" -j ACCEPT
-		iptables -A FORWARD -o "${DEVNAME_OUTSIDE}" -j ACCEPT
-		#Accept related traffic
-		iptables -I INPUT -i "${DEVNAME_OUTSIDE}" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-	fi
-
-	return 0 # additional precation against "set -e" in case of future mods of this function
-}
-
-autoconfigure_nat_up_inside() {
-	autoconfigure_tunnel_up_inside
-
-	# add default route if gateway undefined
-	if [ -z "${GATEWAY}" ] && [ -n "${IPADDR_OUTSIDE}" ]; then
-		GATEWAY="${IPADDR_OUTSIDE}"
-	fi
-
-	return 0 # additional precation against "set -e" in case of future mods of this function
-}
-
-autoconfigure_nat_down_inside() {
-	autoconfigure_tunnel_down_inside
-
-	return 0
-}
-
-autoconfigure_nat_down_outside() {
-	# remove NAT
-	iptables -t nat -D POSTROUTING -s "${IPADDR_OUTSIDE}" -j MASQUERADE
-
-	iptables -D FORWARD -i "${DEVNAME_OUTSIDE}" -j ACCEPT
-	iptables -D FORWARD -o "${DEVNAME_OUTSIDE}" -j ACCEPT
-	iptables -D INPUT -i "${DEVNAME_OUTSIDE}" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-
-	autoconfigure_tunnel_down_outside
-
-	return 0
-}
-
-autoconfigure_mvbr_up_outside() {
-	DEVNAME_INSIDE=mv0
-	DEVNAME_INSIDE_TMP_SUFFIX="-${NSNAME}"
-
-	! ip -n "${NSNAME}" link delete "${DEVNAME_INSIDE}"
-	ip link add "${DEVNAME_INSIDE}${DEVNAME_INSIDE_TMP_SUFFIX}" netns "${NSNAME}" link "${MACVLAN_BRIDGE}" type macvlan mode bridge
-	ip -n "${NSNAME}" link set dev "${DEVNAME_INSIDE}${DEVNAME_INSIDE_TMP_SUFFIX}" name ${DEVNAME_INSIDE}
-	! tc -n "${NSNAME}" qdisc del dev "${DEVNAME_INSIDE}" root
-	ip -n "${NSNAME}" link set "${DEVNAME_INSIDE}" up
-
-	autoconfigure_tunnel_up_outside
-}
-
-autoconfigure_mvbr_down_outside() {
-	autoconfigure_tunnel_down_outside
-
-	ip -n "${NSNAME}" link delete ${DEVNAME_INSIDE}
-}
-
-autoconfigure_mvbr_up_inside() {
-	DEVNAME_INSIDE=mv0
-
-	autoconfigure_tunnel_up_inside
-
-	return 0
-}
-
-autoconfigure_mvbr_down_inside() {
-	DEVNAME_INSIDE=mv0
-
-	autoconfigure_tunnel_down_inside
-
-	return 0
+  echo "Auto configuration for systemd-named-netns."
+  echo -e "\nUsage:\n\t$0 network-type ns-name [optional params] [up|down] [inside|outside]\n"
+  echo "Note: you may need root privileges for this."
 }
 
 autoconfigure() {
@@ -193,40 +33,40 @@ autoconfigure() {
 }
 
 inside_check() {
-	NSNAME=$1
+  NSNAME=$1
 
-        GLOBAL_NETNS_ID="$(readlink /proc/1/ns/net)"
-        if [[ -z "$GLOBAL_NETNS_ID" ]]; then
-          echo "Failure to get global netns ID."
-          exit 1
-        fi
+  GLOBAL_NETNS_ID="$(readlink /proc/1/ns/net)"
+  if [[ -z "$GLOBAL_NETNS_ID" ]]; then
+    echo "Failure to get global netns ID."
+    exit 1
+  fi
 
-        CURRENT_NETNS_ID="$(readlink /proc/$$/ns/net)"
-        if [[ -z "$CURRENT_NETNS_ID" ]]; then
-          echo "Failure to get current netns ID."
-          exit 1
-        fi
+  CURRENT_NETNS_ID="$(readlink /proc/$$/ns/net)"
+  if [[ -z "$CURRENT_NETNS_ID" ]]; then
+    echo "Failure to get current netns ID."
+    exit 1
+  fi
 
-        if [[ "$CURRENT_NETNS_ID" == "$GLOBAL_NETNS_ID" ]]; then
-          echo "Current netns is the global netns!"
-          exit 1
-        fi
+  if [[ "$CURRENT_NETNS_ID" == "$GLOBAL_NETNS_ID" ]]; then
+    echo "Current netns is the global netns!"
+    exit 1
+  fi
 
-        ip netns list
-        ip netns pids $NSNAME
+  ip netns list
+  ip netns pids $NSNAME
 
-        CURRENT_NETNS_NAME="$(ip netns identify)"
-        if [[ -z "$CURRENT_NETNS_NAME" || "$CURRENT_NETNS_NAME" != "$NSNAME" ]]; then
-          echo "Current netns (\"$CURRENT_NETNS_NAME\") is not equal to the required netns \"$NSNAME\"!"
-          exit 1
-        fi
+  CURRENT_NETNS_NAME="$(ip netns identify)"
+  if [[ -z "$CURRENT_NETNS_NAME" || "$CURRENT_NETNS_NAME" != "$NSNAME" ]]; then
+    echo "Current netns (\"$CURRENT_NETNS_NAME\") is not equal to the required netns \"$NSNAME\"!"
+    exit 1
+  fi
 
-        echo "Running in the expected netns."
+  echo "Running in the expected netns."
 }
 
 if [[ $# != 4 ]]; then
-	display_usage
-	exit 1
+  display_usage
+  exit 1
 fi
 
 if [[ "$4" == "inside" ]]; then
@@ -234,12 +74,12 @@ if [[ "$4" == "inside" ]]; then
 fi
 
 case "$1" in
-	"--help" | "-h")
-		display_usage
-		exit 0
-		;;
-        *)
-		autoconfigure "$@"
-		exit 0
-		;;
+  "--help" | "-h")
+    display_usage
+    exit 0
+    ;;
+  *)
+    autoconfigure "$@"
+    exit 0
+    ;;
 esac

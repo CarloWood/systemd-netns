@@ -204,14 +204,14 @@ done < <(systemctl list-units --all --no-legend --state=failed 'netns-*@*.servic
 # Check template failures as well, just in case (less common for this issue).
 while IFS= read -r unit_name; do
   [[ -z "$unit_name" ]] && continue
-  if [[ "$unit_name" == netns@.service || "$unit_name" == netns_outside@.service ]]; then
+  if [[ "$unit_name" == netns@*.service || "$unit_name" == netns_outside@*.service ]]; then
     if systemctl reset-failed "$unit_name"; then
-      echo "Reset failed state on unit '$unit_name'."
+      echo "Reset failed-state on unit '$unit_name'."
     else
       echo "Warning: Failed to reset failed state on unit '$unit_name'." >&2
     fi
   fi
-done < <(systemctl list-units --all --no-legend --state=failed 'netns@.service' 'netns_outside@.service' | awk '{print $1}')
+done < <(systemctl list-units --all --no-legend --state=failed 'netns@*.service' 'netns_outside@*.service' | awk '{print $2}')
 
 # --- Final Steps ---
 
