@@ -179,10 +179,6 @@ autoconfigure() {
 	DEVNAME_INSIDE=vn-${NSNAME}1
 	DEVNAME_OUTSIDE=vn-${NSNAME}0
 
-	source /etc/conf.d/netns/default.conf
-	! source "/etc/conf.d/netns/${NSTYPE}.conf"
-	! source "/etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf"
-
 	if type -t autoconfigure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
 #		autoconfigure_"${NSTYPE}_${UPDOWN}_${INOUT}" "$@"
                 ip address
@@ -240,12 +236,8 @@ case "$1" in
 		display_usage
 		exit 0
 		;;
-	"raw"|"tunnel"|"bridge"|"mvbr"|"nat")
+        *)
 		autoconfigure "$@"
 		exit 0
-		;;
-	*)
-		echo "Unknown network type. Quitting."
-		exit 1
 		;;
 esac

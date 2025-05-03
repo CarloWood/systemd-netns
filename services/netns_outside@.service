@@ -10,7 +10,7 @@ Documentation=https://github.com/CarloWood/systemd-netns
 RefuseManualStart=yes
 
 # Create a new netns if needed.
-Wants=netns_name@%i.service
+Requires=netns_name@%i.service
 After=netns_name@%i.service
 
 # Stop this service when no longer needed.
