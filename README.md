@@ -46,7 +46,7 @@ When starting a service, `configure_NSTYPE_up_outside` is called first
 then `configure_NSTYPE_up_inside`. When stopping the service `configure_NSTYPE_down_inside`
 is called first and then `configure_NSTYPE_down_outside`.
 
-All functions have the network namespace passed as only argument.
+All functions have the network namespace passed as the first argument.
 It is recommended to use `NS_NAME="$1"` at the top of a function if
 the network namespace name is required.
 

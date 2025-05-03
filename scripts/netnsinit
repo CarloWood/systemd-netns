@@ -1,20 +1,23 @@
 #! /bin/bash
 
-set -e
-set -x
-display_usage() {
+set -xe
+
+function display_usage() {
   echo "Auto configuration for systemd-named-netns."
   echo -e "\nUsage:\n\t$0 network-type ns-name [optional params] [up|down] [inside|outside]\n"
   echo "Note: you may need root privileges for this."
 }
 
-autoconfigure() {
-  NSTYPE=$1
-  NSNAME=$2
-  UPDOWN=$3
-  INOUT=$4
+function autoconfigure() {
+  NSTYPE="$1"
+  NSNAME="$2"
 
-  echo "Starting autoconfigure ${NSTYPE} ${UPDOWN} ${INOUT}"
+  args=("$@")
+
+  UPDOWN="${args[-2]}"
+  INOUT="${args[-1]}"
+
+  echo "Starting autoconfigure ${NSTYPE} ${NSNAME} ${UPDOWN} ${INOUT}"
 
   # This is always sourced, it can be used to add values that are the same for a lot of %J values.
   source /etc/conf.d/netns/default.conf
@@ -24,7 +27,10 @@ autoconfigure() {
   ! source /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf
 
   if type -t configure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
-    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "$NSNAME"
+    N=${#args[@]}               # Get the total number of arguments (N).
+    length=$(( N - 3 ))         # The number of arguments to pass.
+    subset=("${args[@]:1:$length}")
+    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "${subset[@]}"
   else
     echo "No configuration required."
   fi
@@ -32,8 +38,8 @@ autoconfigure() {
   return 0
 }
 
-inside_check() {
-  NSNAME=$1
+function inside_check() {
+  NSNAME="$1"
 
   GLOBAL_NETNS_ID="$(readlink /proc/1/ns/net)"
   if [[ -z "$GLOBAL_NETNS_ID" ]]; then
@@ -52,9 +58,6 @@ inside_check() {
     exit 1
   fi
 
-  ip netns list
-  ip netns pids $NSNAME
-
   CURRENT_NETNS_NAME="$(ip netns identify)"
   if [[ -z "$CURRENT_NETNS_NAME" || "$CURRENT_NETNS_NAME" != "$NSNAME" ]]; then
     echo "Current netns (\"$CURRENT_NETNS_NAME\") is not equal to the required netns \"$NSNAME\"!"
@@ -64,12 +67,12 @@ inside_check() {
   echo "Running in the expected netns."
 }
 
-if [[ $# != 4 ]]; then
+if [[ $# -lt 4 ]]; then
   display_usage
   exit 1
 fi
 
-if [[ "$4" == "inside" ]]; then
+if [[ "${!#}" == "inside" ]]; then
   inside_check "$2"
 fi
 
