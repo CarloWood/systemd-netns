@@ -184,8 +184,7 @@ autoconfigure() {
   ! source /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf
 
   if type -t configure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
-    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "$@"
-    echo "Autoconfiguration ${NSTYPE} ${UPDOWN} ${INOUT} finished."
+    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "$NSNAME"
   else
     echo "No configuration required."
   fi
