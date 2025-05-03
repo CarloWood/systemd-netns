@@ -138,13 +138,11 @@ while IFS= read -r -d $'\0' conf_file; do
   # Check if the destination file exists and if it differs from the source.
   should_copy=false
   if [[ ! -f "$dest_path" ]]; then
-    echo "    Creating '$dest_path'."
+    echo "  Creating '$dest_path'."
     should_copy=true
   elif ! cmp -s "$source_file" "$dest_path"; then
-    echo "    Updating '$dest_path' as content differs from source."
+    echo "  Updating '$dest_path'."
     should_copy=true
-  # else # Optional: Log files that are already up-to-date
-  #   echo "    '$dest_path' is already up-to-date."
   fi
 
   if $should_copy; then
