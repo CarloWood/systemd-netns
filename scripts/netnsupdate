@@ -193,7 +193,6 @@ fi
 
 # --- Reset Failed Units ---
 
-echo "Checking for and resetting failed units..."
 failed_units_found=false
 
 # Use process substitution to read unit names safely.
@@ -208,15 +207,12 @@ while IFS= read -r unit_name; do
   # Check if the unit name matches our expected patterns - defense against unrelated failed units
   if [[ "$unit_name" == netns-*@*.service || "$unit_name" == netns_outside-*@*.service ]]; then
     failed_units_found=true
-    echo "  Found failed unit: '$unit_name'. Resetting..."
     if systemctl reset-failed "$unit_name"; then
-      echo "    Successfully reset '$unit_name'."
+      echo "Reset failed state on unit '$unit_name'."
     else
       # Log error but continue; reset-failed might fail if state changed.
-      echo "    Warning: Failed to reset '$unit_name'. It might no longer be in a failed state." >&2
+      echo "Warning: Failed to reset failed state on unit '$unit_name'." >&2
     fi
-  # else # Optional: Log skipped units
-  #   echo "  Skipping unrelated failed unit: '$unit_name'"
   fi
 done < <(systemctl list-units --all --no-legend --state=failed 'netns-*@*.service' 'netns_outside-*@*.service' | awk '{print $1}')
 
@@ -224,12 +220,11 @@ done < <(systemctl list-units --all --no-legend --state=failed 'netns-*@*.servic
 while IFS= read -r unit_name; do
   [[ -z "$unit_name" ]] && continue
   if [[ "$unit_name" == netns@.service || "$unit_name" == netns_outside@.service ]]; then
-    failed_units_found=true # Consider it found if the base template failed
-    echo "  Found failed base template unit: '$unit_name'. Resetting..."
+    failed_units_found=true     # Consider it found if the base template failed.
     if systemctl reset-failed "$unit_name"; then
-      echo "    Successfully reset '$unit_name'."
+      echo "Reset failed state on unit '$unit_name'."
     else
-      echo "    Warning: Failed to reset '$unit_name'." >&2
+      echo "Warning: Failed to reset failed state on unit '$unit_name'." >&2
     fi
   fi
 done < <(systemctl list-units --all --no-legend --state=failed 'netns@.service' 'netns_outside@.service' | awk '{print $1}')
