@@ -49,7 +49,7 @@ fi
 # Keys are the file basenames, values can be anything (e.g., 1).
 declare -A expected_files
 needs_daemon_reload=false
-exit_value=0
+error=false
 
 echo "Processing configuration files in '$CONF_DIR'..."
 
@@ -66,7 +66,7 @@ while IFS= read -r -d $'\0' conf_file; do
 
   if [[ -z "$nstype" ]]; then
     echo "Warning: Could not extract NSTYPE from '$filename'. Skipping." >&2
-    exit_value=1
+    error=true
     continue
   fi
 
@@ -93,7 +93,7 @@ while IFS= read -r -d $'\0' conf_file; do
       needs_daemon_reload=true
     else
       echo "  Error removing symlink '$dest_path'. Check permissions? Skipping update." >&2
-      exit_value=1
+      error=true
       continue # Skip processing this specific file pair.
     fi
   fi
@@ -117,7 +117,7 @@ while IFS= read -r -d $'\0' conf_file; do
     else
       echo "  Error copying '$source_file' to '$dest_path'. Check permissions?" >&2
       # Continue processing other files despite error; but exit with an error value.
-      exit_value=1
+      error=true
     fi
   fi
 
@@ -132,7 +132,7 @@ while IFS= read -r -d $'\0' conf_file; do
       needs_daemon_reload=true
     else
       echo "  Error removing symlink '$dest_path'. Check permissions? Skipping update." >&2
-      exit_value=1
+      error=true
       continue # Skip processing this specific file pair
     fi
   fi
@@ -155,7 +155,7 @@ while IFS= read -r -d $'\0' conf_file; do
       needs_daemon_reload=true
     else
       echo "  Error copying '$source_file' to '$dest_path'. Check permissions?" >&2
-      exit_value=1
+      error=true
       # Continue processing other files despite error? Yes.
     fi
   fi
@@ -168,8 +168,7 @@ echo "Cleaning up stale service files in '$SYSTEMD_ETC_DIR'..."
 stale_units_found=false
 
 # Find all files or symlinks in the target directory matching our patterns.
-# We use -L with find to ensure we check symlinks correctly, but remove based on path.
-find "$SYSTEMD_ETC_DIR" -maxdepth 1 \( -name 'netns-*@.service' -o -name 'netns_outside-*@.service' \) -print0 | while IFS= read -r -d $'\0' file_path; do
+while IFS= read -r -d $'\0' file_path; do
   file_name=$(basename "$file_path")
 
   # Check if the current file's basename is in our list of expected files.
@@ -181,12 +180,12 @@ find "$SYSTEMD_ETC_DIR" -maxdepth 1 \( -name 'netns-*@.service' -o -name 'netns_
       needs_daemon_reload=true
     else
       echo "  Error removing stale '$file_path'. Check permissions?" >&2
-      exit_value=1
+      error=true
     fi
   # else # Optional: Log kept files.
   #   echo "  Keeping required file: $file_path"
   fi
-done
+done < <(find "$SYSTEMD_ETC_DIR" -maxdepth 1 \( -name 'netns-*@.service' -o -name 'netns_outside-*@.service' \) -print0)
 
 if ! $stale_units_found; then
   echo "  No stale units found."
@@ -248,12 +247,13 @@ if $needs_daemon_reload; then
         echo "  Systemd daemon reloaded successfully."
     else
         echo "  Error reloading systemd daemon configuration." >&2
-        exit_value=1
+        error=true
     fi
 fi
 
-if [[ $exit_value == 0 ]]; then
-  echo "Script finished successfully."
+if ! $error; then
+  echo "Update successful."
+  exit 0
 fi
 
-exit $exit_value
+exit 1
