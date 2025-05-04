@@ -41,38 +41,9 @@ assert_non_empty() {
   fi
 }
 
-function autoconfigure() {
-  NSTYPE="$1"
-  NSNAME="$2"
-
-  args=("$@")
-
-  UPDOWN="${args[-2]}"
-  INOUT="${args[-1]}"
-
-  echo "Starting autoconfigure ${NSTYPE} ${NSNAME} ${UPDOWN} ${INOUT}"
-
-  # This is always sourced, it can be used to add values that are the same for a lot of %J values.
-  source /etc/conf.d/netns/default.conf
-  # Load instance-specific environment variables.
-  source /etc/conf.d/netns/${NSTYPE}.conf
-  # This file may or may not exist.
-  ! source /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf
-
-  if type -t configure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
-    N=${#args[@]}               # Get the total number of arguments (N).
-    length=$(( N - 3 ))         # The number of arguments to pass.
-    subset=("${args[@]:1:$length}")
-    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "${subset[@]}"
-  else
-    echo "No configuration required."
-  fi
-
-  return 0
-}
-
 function inside_check() {
   NSNAME="$1"
+  UPDOWN="$2"
 
   GLOBAL_NETNS_ID="$(readlink /proc/1/ns/net)"
   if [[ -z "$GLOBAL_NETNS_ID" ]]; then
@@ -94,19 +65,51 @@ function inside_check() {
   CURRENT_NETNS_NAME="$(ip netns identify)"
   if [[ -z "$CURRENT_NETNS_NAME" || "$CURRENT_NETNS_NAME" != "$NSNAME" ]]; then
     echo "Current netns (\"$CURRENT_NETNS_NAME\") is not equal to the required netns \"$NSNAME\"!"
-    exit 1
+    if [[ "$UPDOWN" != "down" ]]; then
+      exit 1
+    fi
   fi
 
   echo "Running in the expected netns."
 }
 
+function autoconfigure() {
+  NSTYPE="$1"
+  NSNAME="$2"
+
+  args=("$@")
+
+  UPDOWN="${args[-2]}"
+  INOUT="${args[-1]}"
+
+  if [[ "${INOUT}" == "inside" ]]; then
+    inside_check ${NSNAME} ${UPDOWN}
+  fi
+
+  echo "Starting 'configure_${NSTYPE}_${UPDOWN}_${INOUT}' for netns '${NSNAME}'."
+
+  # This is always sourced, it can be used to add values that are the same for a lot of %J values.
+  source /etc/conf.d/netns/default.conf
+  # Load instance-specific environment variables.
+  source /etc/conf.d/netns/${NSTYPE}.conf
+  # This file may or may not exist.
+  ! source /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf
+
+  if type -t configure_"${NSTYPE}_${UPDOWN}_${INOUT}" >/dev/null ; then
+    N=${#args[@]}               # Get the total number of arguments (N).
+    length=$(( N - 3 ))         # The number of arguments to pass.
+    subset=("${args[@]:1:$length}")
+    configure_"${NSTYPE}_${UPDOWN}_${INOUT}" "${subset[@]}"
+  else
+    echo "No configuration required."
+  fi
+
+  return 0
+}
+
 if [[ $# -lt 4 ]]; then
   display_usage
   exit 1
-fi
-
-if [[ "${!#}" == "inside" ]]; then
-  inside_check "$2"
 fi
 
 case "$1" in
