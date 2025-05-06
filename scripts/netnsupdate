@@ -206,7 +206,7 @@ if ! $clean_mode; then
       fi
     fi
 
-  done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
+  done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*-*.conf' -prune -o -name '*.conf' -print0)
 
 fi # clean_mode
 
