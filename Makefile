@@ -43,7 +43,7 @@ uninstall:
 	systemctl disable --now "netns_outside@" || true
 	systemctl disable --now "netns_name@" || true
 
-        /usr/sbin/netnsupdate --clean
+	/usr/sbin/netnsupdate --clean
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns@.service
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_outside@.service
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_name@.service
