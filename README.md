@@ -103,8 +103,8 @@ is put in the host namespace and the other (called `${IFNAME_INSIDE}`, or if tha
 in the netns `NSNAME`.
 
 It is possible to put the first device also in a netns by defining `NSNAME_OUTSIDE` (in, for example, `/etc/conf.d/netns/veth-NSNAME.conf`)
-but then one must assure that `netns_name@NSNAME_OUTSIDE.service` is active before `netns-veth@NSNAME.service` is activated. This can be done
-as follows:
+but then one must assure that `netns_name@NSNAME_OUTSIDE.service` is active before `netns_outside-veth@NSNAME.service` is activated.
+This can be done as follows:
 
 ```shell
 $ sudo systemctl edit netns_outside-veth@NSNAME.service
