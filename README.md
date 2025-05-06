@@ -79,10 +79,32 @@ May 04 01:20:41 daniel systemd[1]: netns-macvlan@nsfoo.service: Job netns-macvla
 May 04 01:20:41 daniel systemd[1]: netns_outside-macvlan@nsfoo.service: Job netns_outside-macvlan@nsfoo.service/start failed with result 'dependency'.
 ```
 
-## NS Types
+## Provided NS Types
 
 ### MACVLAN (`netns-macvlan@NSNAME.service`)
 
 A [MACVLAN Bridge](https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking/#macvlan)
 allows you to create multiple interfaces with different Layer 2 (that is, Ethernet MAC)
 addresses on top of a single NIC. MACVLAN is a bridge without an explicit bridge device. 
+
+### VETH (`netns-veth@NSNAME.service`)
+
+A Virtual Ethernet patch cable or [VETH](https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking/#veth)
+for short, are a pair of devices where packets transmitted on one device are immediately received on the other device.
+
+When using `netns-veth@NSNAME.service`, one device (called `${IFNAME_OUTSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}-${NS_NAME}0`)
+is put in the host namespace and the other (called `${IFNAME_INSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}-${NS_NAME}1`) is put
+in the netns `NSNAME`.
+
+It is possible to put the first device also in a netns by defining `NSNAME_OUTSIDE` (in, for example, `/etc/conf.d/netns/veth-NSNAME.conf`)
+but then one must assure that `netns-name@NSNAME_OUTSIDE.service` is active before `netns-veth@NSNAME.service` is activated. This can be done
+as follows:
+
+```
+$ sudo systemctl edit netns-veth@NSNAME.service
+```
+and add
+```
+[Unit]
+Requires=netns-name@NSNAME_OUTSIDE.service
+```
