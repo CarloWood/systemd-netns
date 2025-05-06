@@ -2,7 +2,7 @@
 
 LIBDIR ?= /usr/lib
 
-# Define the destination directory for clarity
+# Define the destination directory for clarity.
 DEST_CONF_DIR = $(DESTDIR)/etc/conf.d/netns
 
 all:
@@ -36,14 +36,14 @@ install: install_configs
 	install --owner=root --group=root --mode=644 services/netns_outside@.service $(DESTDIR)/$(LIBDIR)/systemd/system/
 	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)/usr/sbin/
 	install --owner=root --group=root --mode=755 scripts/netnsupdate $(DESTDIR)/usr/sbin/
-	$(DESTDIR)/usr/sbin/netnsupdate --daemon-reload
+	[[ -n "$(DESTDIR)" -a "$(LIBDIR)" == "/usr/lib" ]] || /usr/sbin/netnsupdate --daemon-reload
 
 uninstall:
 	systemctl disable --now "netns@" || true
 	systemctl disable --now "netns_outside@" || true
 	systemctl disable --now "netns_name@" || true
 
-	$(DESTDIR)/usr/sbin/netnsupdate --clean
+	[[ -n "$(DESTDIR)" -a "$(LIBDIR)" == "/usr/lib" ]] || /usr/sbin/netnsupdate --clean
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns@.service
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_outside@.service
 	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_name@.service
