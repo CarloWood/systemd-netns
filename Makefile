@@ -1,6 +1,7 @@
 .PHONY: all install uninstall
 
 LIBDIR ?= /usr/lib
+BINDIR ?= /usr/sbin
 
 # Define the destination directory for clarity.
 DEST_CONF_DIR = $(DESTDIR)/etc/conf.d/netns
@@ -30,22 +31,22 @@ install_configs:
 	' _ {} "$(DEST_CONF_DIR)" \; # Pass $(DEST_CONF_DIR) as the second argument
 
 install: install_configs
-	install --directory $(DESTDIR)/$(LIBDIR)/systemd/system $(DESTDIR)/etc/conf.d/netns $(DESTDIR)/usr/bin $(DESTDIR)/usr/sbin
-	install --owner=root --group=root --mode=644 services/netns@.service $(DESTDIR)/$(LIBDIR)/systemd/system/
-	install --owner=root --group=root --mode=644 services/netns_name@.service $(DESTDIR)/$(LIBDIR)/systemd/system/
-	install --owner=root --group=root --mode=644 services/netns_outside@.service $(DESTDIR)/$(LIBDIR)/systemd/system/
-	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)/usr/sbin/
-	install --owner=root --group=root --mode=755 scripts/netnsupdate $(DESTDIR)/usr/sbin/
-	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || /usr/sbin/netnsupdate --daemon-reload
+	install --directory $(DESTDIR)$(LIBDIR)/systemd/system $(DEST_CONF_DIR) $(DESTDIR)$(BINDIR)
+	install --owner=root --group=root --mode=644 services/netns@.service $(DESTDIR)$(LIBDIR)/systemd/system/
+	install --owner=root --group=root --mode=644 services/netns_name@.service $(DESTDIR)$(LIBDIR)/systemd/system/
+	install --owner=root --group=root --mode=644 services/netns_outside@.service $(DESTDIR)$(LIBDIR)/systemd/system/
+	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)$(BINDIR)
+	install --owner=root --group=root --mode=755 scripts/netnsupdate $(DESTDIR)$(BINDIR)
+	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netnsupdate --daemon-reload
 
 uninstall:
 	systemctl disable --now "netns@" || true
 	systemctl disable --now "netns_outside@" || true
 	systemctl disable --now "netns_name@" || true
 
-	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || /usr/sbin/netnsupdate --clean
-	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns@.service
-	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_outside@.service
-	rm -f $(DESTDIR)/$(LIBDIR)/systemd/system/netns_name@.service
-	rm -f $(DESTDIR)/usr/sbin/netnsinit
-	rm -f $(DESTDIR)/usr/sbin/netnsupdate
+	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netnsupdate --clean
+	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns@.service
+	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns_outside@.service
+	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns_name@.service
+	rm -f $(DESTDIR)$(BINDIR)/netnsinit
+	rm -f $(DESTDIR)$(BINDIR)/netnsupdate
