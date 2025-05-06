@@ -1,8 +1,8 @@
 # systemd-netns
 
-This project enables you to:
+This project enables you to
  * Run an application inside a named network namespace as a systemd service.
- * Configure the netns using configuration files in /etc/conf.d/netns/.
+ * Configure the netns with possible network interfaces using configuration files in `/etc/conf.d/netns/`.
 
 ## Installation
 
@@ -10,18 +10,25 @@ Dependencies:
  * Recent version of systemd
  * iproute2
 
-For installation, run `make install` with root privilege.
+For installation, run `make [DESTDIR=/somepath...] install` with root privilege.
 
-You can run `make uninstall` to remove the systemd units, but the configs located in `/etc/conf.d/netns/` will not be removed.
+You can run `make [DESTDIR=/somepath...] uninstall` to remove the systemd units.
+The configs located in `$DESTDIR/etc/conf.d/netns/` will not be removed.
 
 ## Usage
+
+Below `NSTYPE` and `NSNAME` are arbitrary strings existing of alpha-numerical
+characters. The latter might be used as part of a device name, so keep them
+short as well. `NSNAME` is the instance of a service and will be used as the
+netns (network namespace). `NSTYPE` must exist as `NSTYPE.conf` in `/etc/conf.d/netns`
+which defines what it does.
 
 To add a new `NSTYPE` create a configuration file `/etc/conf.d/netns/NSTYPE.conf`.
 Optionally, create a file `/etc/conf.d/netns/NSTYPE-NSNAME.conf` that will only
 be sourced for the network namespace `NSNAME`.
 
 Run `/usr/sbin/netnsupdate`. This must be done every time you add (or remove)
-a `/etc/conf.d/netns/NSTYPE.conf` file (not necessary if just edit a `.conf` file).
+a `/etc/conf.d/netns/NSTYPE.conf` file (not necessary if you just edit a `.conf` file).
 
 The contents of both `.conf` files together must specify the following bash
 functions. Normally these would be defined in `/etc/conf.d/netns/NSTYPE.conf`.
@@ -42,9 +49,8 @@ function configure_NSTYPE_down_outside() {
 
 The `_outside` functions are called while outside the network namespace,
 the `_inside` functions are called while inside the network namespace.
-When starting a service, `configure_NSTYPE_up_outside` is called first
-then `configure_NSTYPE_up_inside`. When stopping the service `configure_NSTYPE_down_inside`
-is called first and then `configure_NSTYPE_down_outside`.
+When starting a service, `configure_NSTYPE_up_outside` is called first then `configure_NSTYPE_up_inside`.
+When stopping the service `configure_NSTYPE_down_inside` is called first and then `configure_NSTYPE_down_outside`.
 
 All functions have the network namespace passed as the first argument.
 It is recommended to use `NS_NAME="$1"` at the top of a function if
@@ -79,7 +85,7 @@ May 04 01:20:41 daniel systemd[1]: netns-macvlan@nsfoo.service: Job netns-macvla
 May 04 01:20:41 daniel systemd[1]: netns_outside-macvlan@nsfoo.service: Job netns_outside-macvlan@nsfoo.service/start failed with result 'dependency'.
 ```
 
-## Provided NS Types
+## Provided NSTYPE's
 
 ### MACVLAN (`netns-macvlan@NSNAME.service`)
 
@@ -97,7 +103,7 @@ is put in the host namespace and the other (called `${IFNAME_INSIDE}`, or if tha
 in the netns `NSNAME`.
 
 It is possible to put the first device also in a netns by defining `NSNAME_OUTSIDE` (in, for example, `/etc/conf.d/netns/veth-NSNAME.conf`)
-but then one must assure that `netns-name@NSNAME_OUTSIDE.service` is active before `netns-veth@NSNAME.service` is activated. This can be done
+but then one must assure that `netns_name@NSNAME_OUTSIDE.service` is active before `netns-veth@NSNAME.service` is activated. This can be done
 as follows:
 
 ```
@@ -106,5 +112,6 @@ $ sudo systemctl edit netns-veth@NSNAME.service
 and add
 ```
 [Unit]
-Requires=netns-name@NSNAME_OUTSIDE.service
+Requires=netns_name@NSNAME_OUTSIDE.service
 ```
+
