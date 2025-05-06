@@ -107,7 +107,7 @@ but then one must assure that `netns_name@NSNAME_OUTSIDE.service` is active befo
 as follows:
 
 ```shell
-$ sudo systemctl edit netns-veth@NSNAME.service
+$ sudo systemctl edit netns_outside-veth@NSNAME.service
 ```
 and add
 ```
