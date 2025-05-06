@@ -8,14 +8,59 @@
 # https://github.com/systemd/systemd/issues/37329 if any of the units
 # is in a failed state, by resetting that state; although that bug is
 # related to symbolic links and we can't use those anyway.
+#
+# Options:
+#   --daemon-reload : Force systemd daemon-reload at the end.
+#   --clean         : Remove all managed netns service files.
+#   -h, --help      : Show this help message.
 
 # Exit on error, unset variable, or pipe failure.
 set -euo pipefail
 
+# --- Static Configuration ---
 CONF_DIR="/etc/conf.d/netns"
 SYSTEMD_ETC_DIR="/etc/systemd/system"
 TARGET_SERVICE_NETNS="/usr/lib/systemd/system/netns@.service"
 TARGET_SERVICE_OUTSIDE="/usr/lib/systemd/system/netns_outside@.service"
+
+# --- Default values for options ---
+force_daemon_reload=false
+clean_mode=false
+
+# --- Usage Function ---
+usage() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Updates systemd service file copies for netns configurations."
+  echo ""
+  echo "Options:"
+  echo "  --daemon-reload  Force systemd daemon-reload at the end, even if no changes are detected."
+  echo "  --clean          Remove all managed netns service files from ${SYSTEMD_ETC_DIR},"
+  echo "                   as if no configurations exist in ${CONF_DIR}."
+  echo "  -h, --help       Show this help message."
+  exit 1
+}
+
+# --- Parse Command Line Arguments ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --daemon-reload)
+      force_daemon_reload=true
+      shift # past argument
+      ;;
+    --clean)
+      clean_mode=true
+      shift # past argument
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      echo "Error: Unknown option '$1'" >&2
+      usage
+      ;;
+  esac
+done
 
 # --- Sanity Checks ---
 
@@ -24,7 +69,8 @@ if [[ "$(id -u)" -ne 0 ]]; then
   exit 1
 fi
 
-if [[ ! -d "$CONF_DIR" ]]; then
+# CONF_DIR check is only relevant if not in clean_mode.
+if ! $clean_mode && [[ ! -d "$CONF_DIR" ]]; then
   echo "Error: Configuration directory '$CONF_DIR' not found." >&2
   exit 1
 fi
@@ -34,12 +80,13 @@ if [[ ! -d "$SYSTEMD_ETC_DIR" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$TARGET_SERVICE_NETNS" ]]; then
-  echo "Error: Target service file '$TARGET_SERVICE_NETNS' not found." >&2
+# Source service files must exist for copy operations, unless in clean mode (where no copies happen).
+if ! $clean_mode && [[ ! -f "$TARGET_SERVICE_NETNS" ]]; then
+  echo "Error: Source service file '$TARGET_SERVICE_NETNS' not found." >&2
   exit 1
 fi
-if [[ ! -f "$TARGET_SERVICE_OUTSIDE" ]]; then
-  echo "Error: Target service file '$TARGET_SERVICE_OUTSIDE' not found." >&2
+if ! $clean_mode &&  [[ ! -f "$TARGET_SERVICE_OUTSIDE" ]]; then
+  echo "Error: Source service file '$TARGET_SERVICE_OUTSIDE' not found." >&2
   exit 1
 fi
 
@@ -48,8 +95,11 @@ fi
 # Use an associative array to keep track of the files that *should* exist.
 # Keys are the file basenames, values can be anything (e.g., 1).
 declare -A expected_files
-needs_daemon_reload=false
+needs_daemon_reload=$force_daemon_reload
 error=false
+
+# In clean mode, expected_files remains empty, so all managed files will be removed later.
+if ! $clean_mode; then
 
 echo "Processing configuration files in '$CONF_DIR'..."
 
@@ -157,6 +207,8 @@ while IFS= read -r -d $'\0' conf_file; do
   fi
 
 done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
+
+fi # clean_mode
 
 # --- Clean Up Stale Files/Symlinks ---
 
