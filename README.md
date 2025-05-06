@@ -98,12 +98,12 @@ addresses on top of a single NIC. MACVLAN is a bridge without an explicit bridge
 A Virtual Ethernet patch cable or [VETH](https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking/#veth)
 for short, are a pair of devices where packets transmitted on one device are immediately received on the other device.
 
-When using `netns-veth@NSNAME.service`, one device (called `${IFNAME_OUTSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}-${NS_NAME}0`)
-is put in the host namespace and the other (called `${IFNAME_INSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}-${NS_NAME}1`) is put
-in the netns `NSNAME`.
+When using `netns-veth@NSNAME.service`, one device (called `${VETH_IFNAME_OUTSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}${NS_NAME}0`)
+is put in the host namespace and the other (called `${VETH_IFNAME_INSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}${NS_NAME}1`) is put
+in the netns `NSNAME`. Note that `VETH_IFNAME` in turn defaults to `ve-` if not set.
 
-It is possible to put the first device also in a netns by defining `NSNAME_OUTSIDE` (in, for example, `/etc/conf.d/netns/veth-NSNAME.conf`)
-but then one must assure that `netns_name@NSNAME_OUTSIDE.service` is active before `netns_outside-veth@NSNAME.service` is activated.
+It is possible to put the first device also in a netns by defining `VETH_NSNAME_OUTSIDE` (in, for example, `/etc/conf.d/netns/veth-NSNAME.conf`)
+but then one must assure that `netns_name@VETH_NSNAME_OUTSIDE.service` is active before `netns_outside-veth@NSNAME.service` is activated.
 This can be done as follows:
 
 ```shell
@@ -112,6 +112,6 @@ $ sudo systemctl edit netns_outside-veth@NSNAME.service
 and add
 ```
 [Unit]
-Requires=netns_name@NSNAME_OUTSIDE.service
+Requires=netns_name@VETH_NSNAME_OUTSIDE.service
 ```
 
