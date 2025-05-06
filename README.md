@@ -33,7 +33,7 @@ a `/etc/conf.d/netns/NSTYPE.conf` file (not necessary if you just edit a `.conf`
 The contents of both `.conf` files together must specify the following bash
 functions. Normally these would be defined in `/etc/conf.d/netns/NSTYPE.conf`.
 
-```
+```shell
 function configure_NSTYPE_up_outside() {
 }
 
@@ -57,7 +57,7 @@ It is recommended to use `NS_NAME="$1"` at the top of a function if
 the network namespace name is required.
 
 To start a service for network namespace `NSNAME`, run:
-```
+```shell
 systemctl start netns-NSTYPE@NSNAME.service
 ```
 
@@ -69,7 +69,7 @@ Note that `NSNAME` can not be an externally created netns; the netns must be cre
 systemd using the unit `netns_name@NSNAME.service`, which is taken care of under the
 hood by this package. Trying to use an already existing named network namespace will
 result in a failure to start the service. For example,
-```shell
+```
 $ ip netns add nsfoo
 $ systemctl start netns-macvlan@nsfoo
 A dependency job for netns-macvlan@nsfoo.service failed. See 'journalctl -xe' for details.
@@ -106,7 +106,7 @@ It is possible to put the first device also in a netns by defining `NSNAME_OUTSI
 but then one must assure that `netns_name@NSNAME_OUTSIDE.service` is active before `netns-veth@NSNAME.service` is activated. This can be done
 as follows:
 
-```
+```shell
 $ sudo systemctl edit netns-veth@NSNAME.service
 ```
 and add
