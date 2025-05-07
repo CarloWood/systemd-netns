@@ -3,9 +3,9 @@
 # Function to clean up the namespace if it exists.
 function cleanup_veth_up_outside() {
   echo "Executing cleanup due to script failure or exit signal..." >&2
-  if /usr/sbin/ip link show "${IFNAME_OUTSIDE}" > /dev/null 2>&1; then
-    echo "Attempting to delete VETH interface ${IFNAME_OUTSIDE} (and its peer ${IFNAME_INSIDE})..." >&2
-    /usr/sbin/ip link delete "${IFNAME_OUTSIDE}" || true
+  if /usr/sbin/ip link show "${VETH_IFNAME_OUTSIDE}" > /dev/null 2>&1; then
+    echo "Attempting to delete VETH interface ${VETH_IFNAME_OUTSIDE} (and its peer ${VETH_IFNAME_INSIDE})..." >&2
+    /usr/sbin/ip link delete "${VETH_IFNAME_OUTSIDE}" || true
   fi
 }
 
@@ -16,11 +16,11 @@ function set_ifnames() {
   fi
 
   # Allow these to be already set from /etc/conf.d/netns/veth-NSNAME.conf
-  if [[ -z "${IFNAME_OUTSIDE}" ]]; then
-    IFNAME_OUTSIDE="${VETH_IFNAME}${NS_NAME}0"
+  if [[ -z "${VETH_IFNAME_OUTSIDE}" ]]; then
+    VETH_IFNAME_OUTSIDE="${VETH_IFNAME}${NS_NAME}0"
   fi
-  if [[ -z "${IFNAME_INSIDE}" ]]; then
-    IFNAME_INSIDE="${VETH_IFNAME}${NS_NAME}1"
+  if [[ -z "${VETH_IFNAME_INSIDE}" ]]; then
+    VETH_IFNAME_INSIDE="${VETH_IFNAME}${NS_NAME}1"
   fi
 }
 
@@ -32,7 +32,7 @@ function configure_veth_up_outside() {
   # This variable must be set in /etc/conf.d/netns/veth-NSNAME.conf.
   assert_non_empty VETH_IFADDR_OUTSIDE
 
-  # Make sure IFNAME_OUTSIDE and IFNAME_INSIDE are set.
+  # Make sure VETH_IFNAME_OUTSIDE and VETH_IFNAME_INSIDE are set.
   set_ifnames
 
   local result=0
@@ -45,24 +45,24 @@ function configure_veth_up_outside() {
     # Create a pair of virtual network interfaces that act like a direct virtual patch cable.
     chnetns_outside=""
     if [[ -n "${VETH_NSNAME_OUTSIDE}" ]]; then
-      echo "Creating a VETH pair with interfaces ${IFNAME_OUTSIDE} (in netns ${VETH_NSNAME_OUTSIDE}) and ${IFNAME_INSIDE} (in netns ${NS_NAME})..."
-      /usr/sbin/ip link add "${IFNAME_OUTSIDE}" netns "${VETH_NSNAME_OUTSIDE}" type veth peer name "${IFNAME_INSIDE}" netns "${NS_NAME}"
+      echo "Creating a VETH pair with interfaces ${VETH_IFNAME_OUTSIDE} (in netns ${VETH_NSNAME_OUTSIDE}) and ${VETH_IFNAME_INSIDE} (in netns ${NS_NAME})..."
+      /usr/sbin/ip link add "${VETH_IFNAME_OUTSIDE}" netns "${VETH_NSNAME_OUTSIDE}" type veth peer name "${VETH_IFNAME_INSIDE}" netns "${NS_NAME}"
       chnetns_outside="/usr/sbin/ip netns exec ${VETH_NSNAME_OUTSIDE}"
     else
-      echo "Creating a VETH pair with interfaces ${IFNAME_OUTSIDE} and ${IFNAME_INSIDE} (in netns ${NS_NAME})..."
-      /usr/sbin/ip link add "${IFNAME_OUTSIDE}" type veth peer name "${IFNAME_INSIDE}" netns "${NS_NAME}"
+      echo "Creating a VETH pair with interfaces ${VETH_IFNAME_OUTSIDE} and ${VETH_IFNAME_INSIDE} (in netns ${NS_NAME})..."
+      /usr/sbin/ip link add "${VETH_IFNAME_OUTSIDE}" type veth peer name "${VETH_IFNAME_INSIDE}" netns "${NS_NAME}"
     fi
 
     # Apply MAC address if specified.
     if [[ -n "${VETH_MAC_OUTSIDE:-}" ]]; then
-      eval ${chnetns_outside} /usr/sbin/ip link set "${IFNAME_OUTSIDE}" address "${VETH_MAC_OUTSIDE}"
+      eval ${chnetns_outside} /usr/sbin/ip link set "${VETH_IFNAME_OUTSIDE}" address "${VETH_MAC_OUTSIDE}"
     fi
 
-    echo "Bringing interface ${IFNAME_OUTSIDE} UP..."
-    eval ${chnetns_outside} /usr/sbin/ip link set dev "${IFNAME_OUTSIDE}" up
+    echo "Bringing interface ${VETH_IFNAME_OUTSIDE} UP..."
+    eval ${chnetns_outside} /usr/sbin/ip link set dev "${VETH_IFNAME_OUTSIDE}" up
 
-    echo "Adding address ${VETH_IFADDR_OUTSIDE} to ${IFNAME_OUTSIDE}..."
-    eval ${chnetns_outside} /usr/sbin/ip address add "${VETH_IFADDR_OUTSIDE}" dev "${IFNAME_OUTSIDE}"
+    echo "Adding address ${VETH_IFADDR_OUTSIDE} to ${VETH_IFNAME_OUTSIDE}..."
+    eval ${chnetns_outside} /usr/sbin/ip address add "${VETH_IFADDR_OUTSIDE}" dev "${VETH_IFNAME_OUTSIDE}"
   )
 
   result=$?
@@ -75,22 +75,22 @@ function configure_veth_up_inside() {
   # This variable must be set in /etc/conf.d/netns/veth-NSNAME.conf.
   assert_non_empty VETH_IFADDR_INSIDE
 
-  # Make sure IFNAME_INSIDE is set.
+  # Make sure VETH_IFNAME_INSIDE is set.
   set_ifnames
 
   # Remove a potential Queuing Discipline added by the kernel.
-  ! tc qdisc del dev "${IFNAME_INSIDE}" root
+  ! tc qdisc del dev "${VETH_IFNAME_INSIDE}" root
 
   # Apply MAC address if specified.
   if [[ -n "${VETH_MAC_INSIDE:-}" ]]; then
-    /usr/sbin/ip link set "${IFNAME_INSIDE}" address "${VETH_MAC_INSIDE}"
+    /usr/sbin/ip link set "${VETH_IFNAME_INSIDE}" address "${VETH_MAC_INSIDE}"
   fi
    
-  echo "Bringing interface ${IFNAME_INSIDE} UP inside namespace ${NS_NAME}..."
-  /usr/sbin/ip link set dev "${IFNAME_INSIDE}" up
+  echo "Bringing interface ${VETH_IFNAME_INSIDE} UP inside namespace ${NS_NAME}..."
+  /usr/sbin/ip link set dev "${VETH_IFNAME_INSIDE}" up
 
-  echo "Adding address ${VETH_IFADDR_INSIDE} to ${IFNAME_INSIDE} inside namespace ${NS_NAME}..."
-  /usr/sbin/ip address add ${VETH_IFADDR_INSIDE} dev "${IFNAME_INSIDE}"
+  echo "Adding address ${VETH_IFADDR_INSIDE} to ${VETH_IFNAME_INSIDE} inside namespace ${NS_NAME}..."
+  /usr/sbin/ip address add ${VETH_IFADDR_INSIDE} dev "${VETH_IFNAME_INSIDE}"
 }
 
 # --- Bring veth down ---
@@ -98,7 +98,7 @@ function configure_veth_up_inside() {
 function configure_veth_down_outside() {
   NS_NAME="$1"
 
-  # Make sure IFNAME_OUTSIDE is set.
+  # Make sure VETH_IFNAME_OUTSIDE is set.
   set_ifnames
 
   chnetns_outside=""
@@ -106,6 +106,6 @@ function configure_veth_down_outside() {
     chnetns_outside="/usr/sbin/ip netns exec ${VETH_NSNAME_OUTSIDE}"
   fi
 
-  echo "Deleting interface ${IFNAME_OUTSIDE}..."
-  eval ${chnetns_outside} /usr/sbin/ip link delete ${IFNAME_OUTSIDE}
+  echo "Deleting interface ${VETH_IFNAME_OUTSIDE}..."
+  eval ${chnetns_outside} /usr/sbin/ip link delete ${VETH_IFNAME_OUTSIDE}
 }
