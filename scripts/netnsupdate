@@ -103,24 +103,47 @@ if ! $clean_mode; then
 
   echo "Processing configuration files in '$CONF_DIR'..."
 
-  # Use process substitution and null delimiters for safe filename handling.
+  declare -A unique_nstypes    # Associative array to store unique NSTYPEs.
+  # Populate unique_nstypes.
   while IFS= read -r -d $'\0' conf_file; do
-    filename=$(basename "$conf_file")
-    # 'default' is not an NSTYPE.
-    if [[ "$filename" == "default.conf" ]]; then
+    filename=$(basename "$conf_file")   # e.g., "nstype.conf" or "nstype-nsname.conf".
+    
+    # Extract the part before .conf. e.g., "nstype" or "nstype-nsname".
+    local base_name="${filename%.conf}"
+
+    local current_nstype
+    # Check if it was an NSTYPE-NSNAME.conf pattern by looking for a hyphen.
+    if [[ "$base_name" == *-* ]]; then
+      # Extract just the NSTYPE part (before the first hyphen).
+      current_nstype="${base_name%%-*}" 
+    else
+      # It was an NSTYPE.conf pattern.
+      current_nstype="$base_name"
+    fi
+
+    # 'default' is not a valid NSTYPE.
+    if [[ "$current_nstype" == "default" ]]; then
       continue
     fi
 
-    # Extract NSTYPE (the part before .conf).
-    nstype="${filename%.conf}"
-
-    if [[ -z "$nstype" ]]; then
-      echo "Warning: Could not extract NSTYPE from '$filename'. Skipping." >&2
+    if [[ -z "$current_nstype" ]]; then
+      echo "Warning: Could not extract NSTYPE from '$filename' (resulted in empty string). Skipping." >&2
       error=true
       continue
     fi
+    
+    # Add to associative array. Duplicates will just overwrite with the same value.
+    unique_nstypes["$current_nstype"]=1
+    
+  done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
 
+  # Now loop over the unique NSTYPEs found.
+  for nstype in "${!unique_nstypes[@]}"; do
     echo "Checking NSTYPE '$nstype'."
+
+    if [[ ! -f "/usr/share/systemd-netns/${nstype}.sh" && ! -f "${CONF_DIR}/${nstype}.sh" ]]; then
+      echo "  Warning: there is no ${CONF_DIR}/${nstype}.sh file!"
+    fi
 
     # Define expected destination file names and paths.
     dest_name_netns="netns-${nstype}@.service"

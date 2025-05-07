@@ -18,20 +18,21 @@ The configs located in `$DESTDIR/etc/conf.d/netns/` will not be removed.
 ## Usage
 
 Below `NSTYPE` and `NSNAME` are arbitrary strings existing of alpha-numerical
-characters. The latter might be used as part of a device name, so keep them
-short as well. `NSNAME` is the instance of a service and will be used as the
-netns (network namespace). `NSTYPE` must exist as `NSTYPE.conf` in `/etc/conf.d/netns`
-which defines what it does.
+characters (most notably, a hypen ('-') is *not* allowed).
+The latter might be used as part of a device name, so keep them short as well.
+`NSNAME` is the instance of a service and will be used as the
+network namespace name (netns). `NSTYPE` must exist as `NSTYPE.conf` and/or
+`NSTYPE-NSNAME.conf` in `/etc/conf.d/netns`, and as `/usr/share/systemd-netns/NSTYPE.sh`
+and/or `/etc/conf.d/netns/NSTYPE.sh` which defines what it does.
 
-To add a new `NSTYPE` create a configuration file `/etc/conf.d/netns/NSTYPE.conf`.
-Optionally, create a file `/etc/conf.d/netns/NSTYPE-NSNAME.conf` that will only
-be sourced for the network namespace `NSNAME`.
+To add a *new* `NSTYPE` create a file `/etc/conf.d/netns/NSTYPE.sh` and
+create a file `/etc/conf.d/netns/NSTYPE.conf` and/or `/etc/conf.d/netns/NSTYPE-NSNAME.conf`
+(the latter will only be sourced for the network namespace `NSNAME`).
 
 Run `/usr/sbin/netnsupdate`. This must be done every time you add (or remove)
-a `/etc/conf.d/netns/NSTYPE.conf` file (not necessary if you just edit a `.conf` file).
+an `NSTYPE` (not if only editing these files).
 
-The contents of both `.conf` files together must specify the following bash
-functions. Normally these would be defined in `/etc/conf.d/netns/NSTYPE.conf`.
+The `/etc/conf.d/netns/NSTYPE.sh` file must specify the following bash functions.
 
 ```shell
 function configure_NSTYPE_up_outside() {
@@ -86,6 +87,10 @@ May 04 01:20:41 daniel systemd[1]: netns_outside-macvlan@nsfoo.service: Job netn
 ```
 
 ## Provided NSTYPE's
+
+Several NSTYPE's are already provided and have the `configure_*` functions defined
+in `/usr/share/systemd-netns/NSTYPE.sh`. If you need to edit those file, you can
+copy them to `/etc/conf.d/netns/` and then edit those copies.
 
 ### MACVLAN (`netns-macvlan@NSNAME.service`)
 
