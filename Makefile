@@ -3,8 +3,9 @@
 LIBDIR ?= /usr/lib
 BINDIR ?= /usr/sbin
 
-# Define the destination directory for clarity.
+# Define the destination directories for clarity.
 DEST_CONF_DIR = $(DESTDIR)/etc/conf.d/netns
+DEST_DATADIR = $(DESTDIR)/usr/share/systemd-netns
 
 all:
 
@@ -31,10 +32,13 @@ install_configs:
 	' _ {} "$(DEST_CONF_DIR)" \; # Pass $(DEST_CONF_DIR) as the second argument
 
 install: install_configs
-	install --directory $(DESTDIR)$(LIBDIR)/systemd/system $(DEST_CONF_DIR) $(DESTDIR)$(BINDIR)
+	install --directory $(DESTDIR)$(LIBDIR)/systemd/system $(DEST_CONF_DIR) $(DESTDIR)$(BINDIR) $(DEST_DATADIR)
 	install --owner=root --group=root --mode=644 services/netns@.service $(DESTDIR)$(LIBDIR)/systemd/system/
 	install --owner=root --group=root --mode=644 services/netns_name@.service $(DESTDIR)$(LIBDIR)/systemd/system/
 	install --owner=root --group=root --mode=644 services/netns_outside@.service $(DESTDIR)$(LIBDIR)/systemd/system/
+	install --owner=root --group=root --mode=644 configs/lo.sh $(DEST_DATADIR)/
+	install --owner=root --group=root --mode=644 configs/veth.sh $(DEST_DATADIR)/
+	install --owner=root --group=root --mode=644 configs/macvlan.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)$(BINDIR)
 	install --owner=root --group=root --mode=755 scripts/netnsupdate $(DESTDIR)$(BINDIR)
 	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netnsupdate --daemon-reload
@@ -48,5 +52,8 @@ uninstall:
 	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns@.service
 	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns_outside@.service
 	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns_name@.service
+	rm -f $(DEST_DATADIR)/lo.sh
+	rm -f $(DEST_DATADIR)/veth.sh
+	rm -f $(DEST_DATADIR)/macvlan.sh
 	rm -f $(DESTDIR)$(BINDIR)/netnsinit
 	rm -f $(DESTDIR)$(BINDIR)/netnsupdate
