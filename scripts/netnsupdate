@@ -108,7 +108,7 @@ if ! $clean_mode; then
   declare -A unique_nstypes
 
   # Populate unique_nstypes.
-  readarray -t files <<<"$(/bin/ls "$CONF_DIR"/*.sh "$CONF_DIR"/*.conf "$DATA_DIR"/*.sh)"
+  readarray -t files <<<"$(/bin/ls "$CONF_DIR"/*.sh "$CONF_DIR"/*.conf "$DATA_DIR"/*.sh 2>/dev/null)"
   for file in "${files[@]}"; do
     filename=$(basename "$file")   # e.g., "nstype.{conf,sh}" or "nstype-nsname.conf".
     
