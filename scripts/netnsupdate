@@ -108,9 +108,9 @@ if ! $clean_mode; then
   declare -A unique_nstypes
 
   # Populate unique_nstypes.
-  readarray -t files <<<"$(/bin/ls "$CONF_DIR/*.sh" "$CONF_DIR/*.conf" "$DATA_DIR/*.sh")"
+  readarray -t files <<<"$(/bin/ls "$CONF_DIR"/*.sh "$CONF_DIR"/*.conf "$DATA_DIR"/*.sh)"
   for file in "${files[@]}"; do
-    filename=$(basename "$conf_file")   # e.g., "nstype.{conf,sh}" or "nstype-nsname.conf".
+    filename=$(basename "$file")   # e.g., "nstype.{conf,sh}" or "nstype-nsname.conf".
     
     # Extract the part before .conf. e.g., "nstype" or "nstype-nsname".
     base_name="${filename%.*}"
