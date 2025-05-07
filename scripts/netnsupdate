@@ -19,7 +19,7 @@ set -euo pipefail
 
 # --- Static Configuration ---
 CONF_DIR="/etc/conf.d/netns"
-DATA_DIR="/usr/share/systemd-nets"
+DATA_DIR="/usr/share/systemd-netns"
 SYSTEMD_ETC_DIR="/etc/systemd/system"
 TARGET_SERVICE_NETNS="/usr/lib/systemd/system/netns@.service"
 TARGET_SERVICE_OUTSIDE="/usr/lib/systemd/system/netns_outside@.service"
