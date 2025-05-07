@@ -19,6 +19,7 @@ set -euo pipefail
 
 # --- Static Configuration ---
 CONF_DIR="/etc/conf.d/netns"
+DATA_DIR="/usr/share/systemd-nets"
 SYSTEMD_ETC_DIR="/etc/systemd/system"
 TARGET_SERVICE_NETNS="/usr/lib/systemd/system/netns@.service"
 TARGET_SERVICE_OUTSIDE="/usr/lib/systemd/system/netns_outside@.service"
@@ -103,13 +104,16 @@ if ! $clean_mode; then
 
   echo "Processing configuration files in '$CONF_DIR'..."
 
-  declare -A unique_nstypes    # Associative array to store unique NSTYPEs.
+  # Associative array to store unique NSTYPEs.
+  declare -A unique_nstypes
+
   # Populate unique_nstypes.
-  while IFS= read -r -d $'\0' conf_file; do
-    filename=$(basename "$conf_file")   # e.g., "nstype.conf" or "nstype-nsname.conf".
+  readarray -t files <<<"$(/bin/ls "$CONF_DIR/*.sh" "$CONF_DIR/*.conf" "$DATA_DIR/*.sh")"
+  for file in "${files[@]}"; do
+    filename=$(basename "$conf_file")   # e.g., "nstype.{conf,sh}" or "nstype-nsname.conf".
     
     # Extract the part before .conf. e.g., "nstype" or "nstype-nsname".
-    base_name="${filename%.conf}"
+    base_name="${filename%.*}"
 
     # Check if it was an NSTYPE-NSNAME.conf pattern by looking for a hyphen.
     if [[ "$base_name" == *-* ]]; then
@@ -134,7 +138,7 @@ if ! $clean_mode; then
     # Add to associative array. Duplicates will just overwrite with the same value.
     unique_nstypes["$current_nstype"]=1
     
-  done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*.conf' -print0)
+  done # loop over all *.sh and *.conf files.
 
   # Now loop over the unique NSTYPEs found.
   for nstype in "${!unique_nstypes[@]}"; do
@@ -230,7 +234,7 @@ if ! $clean_mode; then
       fi
     fi
 
-  done < <(find "$CONF_DIR" -maxdepth 1 -type f -name '*-*.conf' -prune -o -name '*.conf' -print0)
+  done # Loop over all nstypes.
 
 fi # clean_mode
 
