@@ -9,14 +9,7 @@ function cleanup_veth_up_outside() {
   fi
 }
 
-# --- Bring veth up ---
-
-function configure_veth_up_outside() {
-  NS_NAME="$1"
-
-  # This variable must be set in /etc/conf.d/netns/veth-NSNAME.conf.
-  assert_non_empty VETH_IFADDR_OUTSIDE
-
+function set_ifnames() {
   # Use "ve-" as prefix by default if VETH_IFNAME isn't already set. Note that you are allowed to set it to an empty string.
   if ! [[ -v VETH_IFNAME ]]; then
     VETH_IFNAME="ve-"
@@ -29,6 +22,18 @@ function configure_veth_up_outside() {
   if [[ -z "${IFNAME_INSIDE}" ]]; then
     IFNAME_INSIDE="${VETH_IFNAME}${NS_NAME}1"
   fi
+}
+
+# --- Bring veth up ---
+
+function configure_veth_up_outside() {
+  NS_NAME="$1"
+
+  # This variable must be set in /etc/conf.d/netns/veth-NSNAME.conf.
+  assert_non_empty VETH_IFADDR_OUTSIDE
+
+  # Make sure IFNAME_OUTSIDE and IFNAME_INSIDE are set.
+  set_ifnames
 
   local result=0
   export -f cleanup_veth_up_outside
@@ -70,10 +75,8 @@ function configure_veth_up_inside() {
   # This variable must be set in /etc/conf.d/netns/veth-NSNAME.conf.
   assert_non_empty VETH_IFADDR_INSIDE
 
-  if [[ -z "${IFNAME_INSIDE}" ]]; then
-    assert_non_empty VETH_IFNAME
-    IFNAME_INSIDE="${VETH_IFNAME}-${NS_NAME}1"
-  fi
+  # Make sure IFNAME_INSIDE is set.
+  set_ifnames
 
   # Remove a potential Queuing Discipline added by the kernel.
   ! tc qdisc del dev "${IFNAME_INSIDE}" root
@@ -95,10 +98,8 @@ function configure_veth_up_inside() {
 function configure_veth_down_outside() {
   NS_NAME="$1"
 
-  if [[ -z "${IFNAME_OUTSIDE}" ]]; then
-    assert_non_empty VETH_IFNAME
-    IFNAME_OUTSIDE="${VETH_IFNAME}-${NS_NAME}0"
-  fi
+  # Make sure IFNAME_OUTSIDE is set.
+  set_ifnames
 
   chnetns_outside=""
   if [[ -n "${VETH_NSNAME_OUTSIDE}" ]]; then
