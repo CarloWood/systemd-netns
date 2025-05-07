@@ -142,7 +142,9 @@ if ! $clean_mode; then
     echo "Checking NSTYPE '$nstype'."
 
     if [[ ! -f "/usr/share/systemd-netns/${nstype}.sh" && ! -f "${CONF_DIR}/${nstype}.sh" ]]; then
-      echo "  Warning: there is no ${CONF_DIR}/${nstype}.sh file!"
+      echo "  Warning: ${CONF_DIR}/${nstype}.sh does not exist. Skipping."
+      error=true
+      continue
     fi
 
     # Define expected destination file names and paths.

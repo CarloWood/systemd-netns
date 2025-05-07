@@ -88,6 +88,12 @@ function autoconfigure() {
 
   echo "Starting 'configure_${NSTYPE}_${UPDOWN}_${INOUT}' for netns '${NSNAME}'."
 
+  if [[ -f /usr/share/systemd-netns/${NSTYPE}.sh ]]; then
+    source /usr/share/systemd-netns/${NSTYPE}.sh
+  else
+    source /etc/conf.d/netns/${NSTYPE}.sh
+  fi
+
   # This is always sourced, it can be used to add values that are the same for a lot of %J values.
   source /etc/conf.d/netns/default.conf
   # Load instance-specific environment variables.
