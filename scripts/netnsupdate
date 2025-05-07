@@ -109,9 +109,8 @@ if ! $clean_mode; then
     filename=$(basename "$conf_file")   # e.g., "nstype.conf" or "nstype-nsname.conf".
     
     # Extract the part before .conf. e.g., "nstype" or "nstype-nsname".
-    local base_name="${filename%.conf}"
+    base_name="${filename%.conf}"
 
-    local current_nstype
     # Check if it was an NSTYPE-NSNAME.conf pattern by looking for a hyphen.
     if [[ "$base_name" == *-* ]]; then
       # Extract just the NSTYPE part (before the first hyphen).
