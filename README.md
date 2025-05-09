@@ -92,13 +92,9 @@ Several NSTYPE's are already provided and have the `configure_*` functions defin
 in `/usr/share/systemd-netns/NSTYPE.sh`. If you need to edit those file, you can
 copy them to `/etc/conf.d/netns/` and then edit those copies.
 
-### MACVLAN (`netns-macvlan@NSNAME.service`)
-
-A [MACVLAN Bridge](https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking/#macvlan)
-allows you to create multiple interfaces with different Layer 2 (that is, Ethernet MAC)
-addresses on top of a single NIC. MACVLAN is a bridge without an explicit bridge device. 
-
 ### VETH (`netns-veth@NSNAME.service`)
+
+![](doc/assets/VETH.png)
 
 A Virtual Ethernet patch cable or [VETH](https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking/#veth)
 for short, are a pair of devices where packets transmitted on one device are immediately received on the other device.
@@ -119,4 +115,12 @@ and add
 [Unit]
 Requires=netns_name@VETH_NSNAME_OUTSIDE.service
 ```
+
+### MACVLAN (`netns-macvlan@NSNAME.service`)
+
+![](doc/assets/MACVLAN.png)
+
+A [MACVLAN Bridge](https://developers.redhat.com/blog/2018/10/22/introduction-to-linux-interfaces-for-virtual-networking/#macvlan)
+allows you to create multiple interfaces with different Layer 2 (that is, Ethernet MAC)
+addresses on top of a single NIC. MACVLAN is a bridge without an explicit bridge device. 
 
