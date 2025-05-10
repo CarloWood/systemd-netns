@@ -124,3 +124,18 @@ A [MACVLAN Bridge](https://developers.redhat.com/blog/2018/10/22/introduction-to
 allows you to create multiple interfaces with different Layer 2 (that is, Ethernet MAC)
 addresses on top of a single NIC. MACVLAN is a bridge without an explicit bridge device. 
 
+When using `netns-macvlan@NSNAME.service`, the device inside will be called `${MACVLAN_IFNAME}` and it will be associated
+with the physical interface `${MACVLAN_PARENT_IFNAME}`.
+
+The mode that the MACVLAN will operate in is determined by the value of `${MACVLAN_MODE}` that can have
+one of five different values:
+
+* private : Do not allow communication between macvlan instances on the same physical interface, even if the external switch supports hairpin mode.
+* vepa : Virtual Ethernet Port Aggregator mode. Data from one macvlan instance to the other on the same physical interface is transmitted
+over the physical interface. Either the attached switch needs to support hairpin mode, or there must be a TCP/IP router forwarding the
+packets in order to allow communication.
+* bridge : In bridge mode, all endpoints are directly connected to each other, communication is not redirected through the physical interface's peer.
+* passthru : Allows a single VM to be connected directly to the physical interface. For more information see [man ip-link](https://man7.org/linux/man-pages/man8/ip-link.8.html).
+* source : allows one to set a list of allowed mac address, which is used to match against source mac address from received frames on underlying interface.
+This allows creating mac based VLAN associations, instead of standard port or tag based.
+
