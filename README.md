@@ -139,3 +139,25 @@ packets in order to allow communication.
 * source : allows one to set a list of allowed mac address, which is used to match against source mac address from received frames on underlying interface.
 This allows creating mac based VLAN associations, instead of standard port or tag based.
 
+### NFT (`netns-nft@NSNAME.service`)
+
+This unit stores and restores firewall rules in the netns `NSNAME` using [`nftables`](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page).
+Without this unit enabled for a namespace, the namespace will have no specific firewall rules applied by this service,
+typically meaning all traffic is allowed by default within the namespace's own stack.
+
+Enabling this service for a namespace will also ensure its loopback interface (`lo`) is brought up.
+This is necessary for certain firewall functionalities, most notably for `REJECT` rules to operate correctly.
+
+**Rule Storage and Defaults:**
+* Firewall rules are stored in JSON format; you should not edit these files directly.
+* When this service starts, it looks for a namespace-specific rules file: `/etc/conf.d/netns/nft-NSNAME.json`.
+* If `nft-NSNAME.json` does not exist, a default ruleset from `/etc/conf.d/netns/nft.json` (provided by the systemd-netns project) will be applied.
+* The provided default ruleset is restrictive: it blocks all incoming traffic and allows outgoing traffic *only* to private IP ranges (`192.168.0.0/16` and `10.0.0.0/8`).
+`127.0.0.0/8` is unrestricted.
+**Customizing Firewall Rules:**
+1.  Enter the network namespace: `sudo ip netns exec NSNAME bash` (or your preferred shell).
+2.  Modify the `nftables` ruleset using `nft` commands (e.g., `nft add rule inet filter output tcp dport 443 accept`).
+3.  Verify your rules: `nft list ruleset`.
+4.  Once satisfied, exit the namespace shell and run `sudo netns-nft-store NSNAME`.
+    This command will dump the current live `nftables` ruleset from the `NSNAME` namespace into `/etc/conf.d/netns/nft-NSNAME.json`.
+    This saved ruleset will then be automatically restored the next time `netns-nft@NSNAME.service` starts.
