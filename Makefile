@@ -40,15 +40,16 @@ install: install_configs
 	install --owner=root --group=root --mode=644 configs/veth.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=644 configs/macvlan.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)$(BINDIR)
-	install --owner=root --group=root --mode=755 scripts/netnsupdate $(DESTDIR)$(BINDIR)
-	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netnsupdate --daemon-reload
+	install --owner=root --group=root --mode=755 scripts/netns-update $(DESTDIR)$(BINDIR)
+	install --owner=root --group=root --mode=755 scripts/netns-nft-save $(DESTDIR)$(BINDIR)
+	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netns-update --daemon-reload
 
 uninstall:
 	systemctl disable --now "netns@" || true
 	systemctl disable --now "netns_outside@" || true
 	systemctl disable --now "netns_name@" || true
 
-	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netnsupdate --clean
+	[[ -n "$(DESTDIR)" || "$(LIBDIR)" != "/usr/lib" ]] || $(BINDIR)/netns-update --clean
 	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns@.service
 	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns_outside@.service
 	rm -f $(DESTDIR)$(LIBDIR)/systemd/system/netns_name@.service
@@ -56,4 +57,5 @@ uninstall:
 	rm -f $(DEST_DATADIR)/veth.sh
 	rm -f $(DEST_DATADIR)/macvlan.sh
 	rm -f $(DESTDIR)$(BINDIR)/netnsinit
-	rm -f $(DESTDIR)$(BINDIR)/netnsupdate
+	rm -f $(DESTDIR)$(BINDIR)/netns-update
+	rm -f $(DESTDIR)$(BINDIR)/netns-nft-save

@@ -1,0 +1,87 @@
+#! /bin/bash
+
+# Script to save the nftables ruleset from a given network namespace.
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error.
+set -u
+# If any command in a pipeline fails, the pipeline's exit status is that of the failed command.
+set -o pipefail
+
+PROGNAME=$(basename "$0")
+RULES_BASE_DIR="/etc/conf.d/netns"
+
+print_usage() {
+    echo "Usage: ${PROGNAME} <NAMESPACE_NAME>"
+    echo "Saves the current nftables ruleset from <NAMESPACE_NAME> to ${RULES_BASE_DIR}/nft-<NAMESPACE_NAME>.json"
+}
+
+# --- Argument Check ---
+if [ "$#" -ne 1 ]; then
+    echo "Error: Incorrect number of arguments." >&2
+    print_usage
+    exit 1
+fi
+
+NS_NAME="$1"
+
+if [ -z "$NS_NAME" ]; then
+    echo "Error: NAMESPACE_NAME cannot be empty." >&2
+    print_usage
+    exit 1
+fi
+
+# --- Root Check ---
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Error: This script must be run as root." >&2
+    exit 1
+fi
+
+# --- Namespace Service Activity Check ---
+SERVICE_NAME="netns_name@${NS_NAME}.service"
+if ! systemctl is-active --quiet "${SERVICE_NAME}"; then
+    echo "Error: Systemd service '${SERVICE_NAME}' is not active." >&2
+    exit 1
+fi
+
+# --- Target File and Directory ---
+RULES_FILE="${RULES_BASE_DIR}/nft-${NS_NAME}.json"
+
+# --- Dump and Save Rules ---
+echo "Attempting to save nftables ruleset from namespace '${NS_NAME}' to '${RULES_FILE}'..."
+
+# Use a temporary file for atomic write.
+# mktemp will create a secure temporary file.
+TEMP_FILE=$(mktemp "${RULES_BASE_DIR}/nft-${NS_NAME}.json.XXXXXX")
+if [ -z "$TEMP_FILE" ]; then
+    echo "Error: Could not create temporary file." >&2
+    exit 1
+fi
+
+# Ensure the temporary file is cleaned up on script error.
+trap 'rm -f "${TEMP_FILE}"' EXIT
+
+# Export rules from the namespace to the temporary file.
+if ! ip netns exec "${NS_NAME}" nft list ruleset -j > "${TEMP_FILE}"; then
+    echo "Error: Failed to export nftables ruleset from namespace '${NS_NAME}'." >&2
+    # TEMP_FILE will be removed by the trap.
+    exit 1
+fi
+
+# Move the temporary file to the final destination.
+if ! mv "${TEMP_FILE}" "${RULES_FILE}"; then
+    echo "Error: Failed to move temporary file to ${RULES_FILE}." >&2
+    # TEMP_FILE will be removed by the trap
+    exit 1
+fi
+
+# Successfully moved.
+trap - EXIT
+
+# Set appropriate permissions for the rules file.
+chown root:root "${RULES_FILE}"
+chmod 0644 "${RULES_FILE}" # Readable by all, writable only by root
+echo "Successfully saved nftables ruleset for '${NS_NAME}' to '${RULES_FILE}'."
+
+exit 0

@@ -29,7 +29,7 @@ To add a *new* `NSTYPE` create a file `/etc/conf.d/netns/NSTYPE.sh` and
 create a file `/etc/conf.d/netns/NSTYPE.conf` and/or `/etc/conf.d/netns/NSTYPE-NSNAME.conf`
 (the latter will only be sourced for the network namespace `NSNAME`).
 
-Run `/usr/sbin/netnsupdate`. This must be done every time you add (or remove)
+Run `/usr/sbin/netns-update`. This must be done every time you add (or remove)
 an `NSTYPE` (not if only editing these files).
 
 The `/etc/conf.d/netns/NSTYPE.sh` file must specify the following bash functions.
@@ -159,6 +159,6 @@ This is necessary for certain firewall functionalities, most notably for `REJECT
 1.  Enter the network namespace: `sudo ip netns exec NSNAME bash` (or your preferred shell).
 2.  Modify the `nftables` ruleset using `nft` commands (e.g., `nft add rule inet filter output tcp dport 443 accept`).
 3.  Verify your rules: `nft list ruleset`.
-4.  Once satisfied, exit the namespace shell and run `sudo netns-nft-store NSNAME`.
+4.  Once satisfied, exit the namespace shell and run `sudo netns-nft-save NSNAME`.
     This command will dump the current live `nftables` ruleset from the `NSNAME` namespace into `/etc/conf.d/netns/nft-NSNAME.json`.
     This saved ruleset will then be automatically restored the next time `netns-nft@NSNAME.service` starts.
