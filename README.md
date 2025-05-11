@@ -154,6 +154,7 @@ This is necessary for certain firewall functionalities, most notably for `REJECT
 * If `nft-NSNAME.json` does not exist, a default ruleset from `/etc/conf.d/netns/nft.json` (provided by the systemd-netns project) will be applied.
 * The provided default ruleset is restrictive: it blocks all incoming traffic and allows outgoing traffic *only* to private IP ranges (`192.168.0.0/16` and `10.0.0.0/8`).
 `127.0.0.0/8` is unrestricted.
+
 **Customizing Firewall Rules:**
 1.  Enter the network namespace: `sudo ip netns exec NSNAME bash` (or your preferred shell).
 2.  Modify the `nftables` ruleset using `nft` commands (e.g., `nft add rule inet filter output tcp dport 443 accept`).
