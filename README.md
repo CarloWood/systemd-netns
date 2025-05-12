@@ -89,7 +89,7 @@ May 04 01:20:41 daniel systemd[1]: netns_outside-macvlan@nsfoo.service: Job netn
 ## Provided NSTYPE's
 
 Several NSTYPE's are already provided and have the `configure_*` functions defined
-in `/usr/share/systemd-netns/NSTYPE.sh`. If you need to edit those file, you can
+in `/usr/share/systemd-netns/NSTYPE.sh`. If you need to edit those files, you can
 copy them to `/etc/conf.d/netns/` and then edit those copies.
 
 ### VETH (`netns-veth@NSNAME.service`)

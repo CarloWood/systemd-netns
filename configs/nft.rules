@@ -1,6 +1,8 @@
 #! /usr/bin/nft -f
 # vim:set ts=2 sw=2 et:
 
+# These are the default nft rules that are used if no /etc/conf.d/netns/nft-NSNAME.rules file exists.
+
 # Loading this file replaces all potentially already existing rules.
 flush ruleset
 

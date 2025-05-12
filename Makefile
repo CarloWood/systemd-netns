@@ -39,6 +39,7 @@ install: install_configs
 	install --owner=root --group=root --mode=644 configs/lo.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=644 configs/veth.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=644 configs/macvlan.sh $(DEST_DATADIR)/
+	install --owner=root --group=root --mode=644 configs/nft.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=755 scripts/netnsinit $(DESTDIR)$(BINDIR)
 	install --owner=root --group=root --mode=755 scripts/netns-update $(DESTDIR)$(BINDIR)
 	install --owner=root --group=root --mode=755 scripts/netns-nft-save $(DESTDIR)$(BINDIR)
@@ -56,6 +57,7 @@ uninstall:
 	rm -f $(DEST_DATADIR)/lo.sh
 	rm -f $(DEST_DATADIR)/veth.sh
 	rm -f $(DEST_DATADIR)/macvlan.sh
+	rm -f $(DEST_DATADIR)/nft.sh
 	rm -f $(DESTDIR)$(BINDIR)/netnsinit
 	rm -f $(DESTDIR)$(BINDIR)/netns-update
 	rm -f $(DESTDIR)$(BINDIR)/netns-nft-save
