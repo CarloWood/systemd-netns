@@ -14,7 +14,7 @@ RULES_BASE_DIR="/etc/conf.d/netns"
 
 print_usage() {
     echo "Usage: ${PROGNAME} <NAMESPACE_NAME>"
-    echo "Saves the current nftables ruleset from <NAMESPACE_NAME> to ${RULES_BASE_DIR}/nft-<NAMESPACE_NAME>.json"
+    echo "Saves the current nftables ruleset from <NAMESPACE_NAME> to ${RULES_BASE_DIR}/nft-<NAMESPACE_NAME>.rules"
 }
 
 # --- Argument Check ---
@@ -46,14 +46,14 @@ if ! systemctl is-active --quiet "${SERVICE_NAME}"; then
 fi
 
 # --- Target File and Directory ---
-RULES_FILE="${RULES_BASE_DIR}/nft-${NS_NAME}.json"
+RULES_FILE="${RULES_BASE_DIR}/nft-${NS_NAME}.rules"
 
 # --- Dump and Save Rules ---
 echo "Attempting to save nftables ruleset from namespace '${NS_NAME}' to '${RULES_FILE}'..."
 
 # Use a temporary file for atomic write.
 # mktemp will create a secure temporary file.
-TEMP_FILE=$(mktemp "${RULES_BASE_DIR}/nft-${NS_NAME}.json.XXXXXX")
+TEMP_FILE=$(mktemp "${RULES_BASE_DIR}/nft-${NS_NAME}.rules.XXXXXX")
 if [ -z "$TEMP_FILE" ]; then
     echo "Error: Could not create temporary file." >&2
     exit 1
@@ -63,7 +63,7 @@ fi
 trap 'rm -f "${TEMP_FILE}"' EXIT
 
 # Export rules from the namespace to the temporary file.
-if ! ip netns exec "${NS_NAME}" nft list ruleset -j > "${TEMP_FILE}"; then
+if ! ip netns exec "${NS_NAME}" nft list ruleset > "${TEMP_FILE}"; then
     echo "Error: Failed to export nftables ruleset from namespace '${NS_NAME}'." >&2
     # TEMP_FILE will be removed by the trap.
     exit 1

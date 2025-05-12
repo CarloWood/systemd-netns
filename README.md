@@ -160,6 +160,6 @@ will be lost.
 1.  Enter the network namespace, e.g.: `sudo ip netns exec NSNAME bash` (or your preferred shell).
 2.  Modify the `nftables` ruleset using [`nft` commands](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/getting-started-with-nftables_configuring-and-managing-networking).
 3.  Verify your rules: `nft list ruleset`.
-4.  Once satisfied, exit the namespace shell and run `sudo netns-nft-save NSNAME`.
+4.  Once satisfied, run `sudo netns-nft-save NSNAME` (from any netns).
     This command will dump the current live `nftables` ruleset from the `NSNAME` namespace into `/etc/conf.d/netns/nft-NSNAME.rules`.
     This saved ruleset will then be automatically restored the next time `netns-nft@NSNAME.service` starts.
