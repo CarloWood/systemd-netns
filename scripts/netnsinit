@@ -97,8 +97,8 @@ function autoconfigure() {
   # This is always sourced, it can be used to add values that are the same for a lot of %J values.
   source /etc/conf.d/netns/default.conf
   # Load instance-specific environment variables.
-  # At least one of these files should exist, but maybe for the wrong NSNAME - so lets test this anyway.
-  if [[ ! -f /etc/conf.d/netns/${NSTYPE}.conf && ! -f /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf ]]; then
+  # Unless NO_CONFIG_REQUIRED is not set, at least one of these files should exist.
+  if [[ -z "${NO_CONFIG_REQUIRED}" && ! -f /etc/conf.d/netns/${NSTYPE}.conf && ! -f /etc/conf.d/netns/${NSTYPE}-${NSNAME}.conf ]]; then
     echo "Missing configuration file(s)."
     return 1
   fi

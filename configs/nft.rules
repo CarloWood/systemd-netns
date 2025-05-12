@@ -1,0 +1,33 @@
+#! /usr/bin/nft -f
+# vim:set ts=2 sw=2 et:
+
+# Loading this file replaces all potentially already existing rules.
+flush ruleset
+
+table inet netns_default {
+  chain INPUT {
+    type filter hook input priority filter
+    policy drop
+
+    # Good practice: drop invalid packets early.
+    ct state invalid drop comment "early drop of invalid connections"
+
+    # Allow ALL traffic coming IN with a source address of the loopback interface.
+    iif "lo" accept comment "allow all input from loopback"
+  }
+
+  chain FORWARD {
+    type filter hook forward priority filter
+    policy drop
+
+    # No rules needed here, we don't want this namespace to route.
+  }
+
+  chain OUTPUT {
+    type filter hook output priority filter
+    policy drop
+
+    # Allow ALL traffic going OUT with a destination address of the loopback interface.
+    oif "lo" accept comment "allow all output to loopback"
+  }
+}

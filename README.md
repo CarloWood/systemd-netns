@@ -149,16 +149,17 @@ Enabling this service for a namespace will also ensure its loopback interface (`
 This is necessary for certain firewall functionalities, most notably for `REJECT` rules to operate correctly.
 
 **Rule Storage and Defaults:**
-* Firewall rules are stored in JSON format; you should not edit these files directly.
-* When this service starts, it looks for a namespace-specific rules file: `/etc/conf.d/netns/nft-NSNAME.json`.
-* If `nft-NSNAME.json` does not exist, a default ruleset from `/etc/conf.d/netns/nft.json` (provided by the systemd-netns project) will be applied.
-* The provided default ruleset is restrictive: it blocks all incoming traffic and allows outgoing traffic *only* to private IP ranges (`192.168.0.0/16` and `10.0.0.0/8`).
-`127.0.0.0/8` is unrestricted.
+* Firewall rules are stored in the native nftables format. You can edit them, but be aware that running `netns-nft-save` will
+overwrite the file with the rule set that is current in the namespace at that moment, so at the very least any comments that were added
+will be lost.
+* When this service starts, it looks for a namespace-specific rules file: `/etc/conf.d/netns/nft-NSNAME.rules`.
+* If `nft-NSNAME.rules` does not exist, a default ruleset from `/etc/conf.d/netns/nft.rules` (provided by the systemd-netns project) will be applied.
+* The provided default ruleset is very restrictive: it blocks all traffic except to and from the `lo` loopback interface.
 
 **Customizing Firewall Rules:**
-1.  Enter the network namespace: `sudo ip netns exec NSNAME bash` (or your preferred shell).
-2.  Modify the `nftables` ruleset using `nft` commands (e.g., `nft add rule inet filter output tcp dport 443 accept`).
+1.  Enter the network namespace, e.g.: `sudo ip netns exec NSNAME bash` (or your preferred shell).
+2.  Modify the `nftables` ruleset using [`nft` commands](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/getting-started-with-nftables_configuring-and-managing-networking).
 3.  Verify your rules: `nft list ruleset`.
 4.  Once satisfied, exit the namespace shell and run `sudo netns-nft-save NSNAME`.
-    This command will dump the current live `nftables` ruleset from the `NSNAME` namespace into `/etc/conf.d/netns/nft-NSNAME.json`.
+    This command will dump the current live `nftables` ruleset from the `NSNAME` namespace into `/etc/conf.d/netns/nft-NSNAME.rules`.
     This saved ruleset will then be automatically restored the next time `netns-nft@NSNAME.service` starts.

@@ -1,3 +1,6 @@
+# No configuration file(s) required.
+NO_CONFIG_REQUIRED=1
+
 # --- Bring lo up ---
 
 function configure_lo_up_inside() {

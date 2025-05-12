@@ -14,7 +14,7 @@ install_configs:
 	# Ensure the destination directory exists. Use quotes.
 	install -d --owner=root --group=root "$(DEST_CONF_DIR)"
 	# Run over all .conf files in configs/ and install files that do not already exist in the destination.
-	@find configs -maxdepth 1 -name '*.conf' -exec sh -c ' \
+	@find configs -maxdepth 1 \( -name '*.conf' -o -name 'nft.rules' \) -exec sh -c ' \
 	    src_file="$$1"; \
 	    dest_dir="$$2"; \
 	    if [ -z "$$dest_dir" ]; then \
