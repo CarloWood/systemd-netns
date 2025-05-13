@@ -139,7 +139,7 @@ packets in order to allow communication.
 * source : allows one to set a list of allowed mac address, which is used to match against source mac address from received frames on underlying interface.
 This allows creating mac based VLAN associations, instead of standard port or tag based.
 
-### NFT (`netns-nft@NSNAME.service`)
+### NFTables (`netns-nft@NSNAME.service`)
 
 This unit stores and restores firewall rules in the netns `NSNAME` using [`nftables`](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page).
 Without this unit enabled for a namespace, the namespace will have no specific firewall rules applied by this service,
@@ -151,7 +151,7 @@ This is necessary for certain firewall functionalities, most notably for `REJECT
 **Rule Storage and Defaults:**
 * Firewall rules are stored in the native nftables format. You can edit them, but be aware that running `netns-nft-save` will
 overwrite the file with the rule set that is current in the namespace at that moment, so at the very least any comments that were added
-will be lost.
+will be lost. Of course you have the option to simply never run `netns-nft-save` for that NSNAME and edit the file directly.
 * When this service starts, it looks for a namespace-specific rules file: `/etc/conf.d/netns/nft-NSNAME.rules`.
 * If `nft-NSNAME.rules` does not exist, a default ruleset from `/etc/conf.d/netns/nft.rules` (provided by the systemd-netns project) will be applied.
 * The provided default ruleset is very restrictive: it blocks all traffic except to and from the `lo` loopback interface.
@@ -163,3 +163,6 @@ will be lost.
 4.  Once satisfied, run `sudo netns-nft-save NSNAME` (from any netns).
     This command will dump the current live `nftables` ruleset from the `NSNAME` namespace into `/etc/conf.d/netns/nft-NSNAME.rules`.
     This saved ruleset will then be automatically restored the next time `netns-nft@NSNAME.service` starts.
+5.  Note that by setting `NFT_AUTO_SAVE=yes` in `nft-NSNAME.conf` will automatically save nftables at the moment `netns-nft@NSNAME.service` is stopped.
+
+Alternatively just edit `/etc/conf.d/netns/nft-NSNAME.rules` manually and never run `netns-nft-save NSNAME`.

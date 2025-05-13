@@ -22,6 +22,7 @@ function configure_nft_down_inside() {
   NS_NAME="$1"
   RULES_FILE="/etc/conf.d/netns/nft-${NS_NAME}.rules"
 
+  # One can create a nft-${NS_NAME}.conf file with `NFT_AUTO_SAVE=yes` (not really recommended).
   if [[ "${NFT_AUTO_SAVE}" == "yes" ]]; then
     echo "Automatically saving current nftables rule set to ${RULES_FILE}!"
     netns-nft-save "${NS_NAME}"
