@@ -20,7 +20,7 @@ The configs located in `$DESTDIR/etc/conf.d/netns/` will not be removed.
 Because it lets you build cool stuff with just a few configuration files
 in `/etc/conf.d/netns` and a few `sudo systemctl edit *.service` commands!
 
-The latter is really important, because in general you can need quite a few
+The latter is really important, because in general you will need a few
 dependencies:
 
 ![](doc/assets/dependencies.png)
