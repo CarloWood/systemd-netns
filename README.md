@@ -15,6 +15,16 @@ For installation, run `make [DESTDIR=/somepath...] install` with root privilege.
 You can run `make [DESTDIR=/somepath...] uninstall` to remove the systemd units.
 The configs located in `$DESTDIR/etc/conf.d/netns/` will not be removed.
 
+## Why systemd-netns
+
+Because it lets you build cool stuff with just a few configuration files
+in `/etc/conf.d/netns` and a few `sudo systemctl edit *.service` commands!
+
+The latter is really important, because in general you can need quite a few
+dependencies:
+
+![](doc/assets/dependencies.png)
+
 ## Usage
 
 Below `NSTYPE` and `NSNAME` are arbitrary strings existing of alpha-numerical

@@ -32,10 +32,11 @@ install_configs:
 	' _ {} "$(DEST_CONF_DIR)" \; # Pass $(DEST_CONF_DIR) as the second argument
 
 install: install_configs
-	install --directory $(DESTDIR)$(LIBDIR)/systemd/system $(DEST_CONF_DIR) $(DESTDIR)$(BINDIR) $(DEST_DATADIR)
+	install --directory $(DESTDIR)$(LIBDIR)/systemd/system/netns-nft@.service.d/ $(DEST_CONF_DIR) $(DESTDIR)$(BINDIR) $(DEST_DATADIR)
 	install --owner=root --group=root --mode=644 services/netns@.service $(DESTDIR)$(LIBDIR)/systemd/system/
 	install --owner=root --group=root --mode=644 services/netns_name@.service $(DESTDIR)$(LIBDIR)/systemd/system/
 	install --owner=root --group=root --mode=644 services/netns_outside@.service $(DESTDIR)$(LIBDIR)/systemd/system/
+	install --owner=root --group=root --mode=644 services/netns-nft@.service.d/bring-up-lo.conf $(DESTDIR)$(LIBDIR)/systemd/system/netns-nft@.service.d/
 	install --owner=root --group=root --mode=644 configs/lo.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=644 configs/veth.sh $(DEST_DATADIR)/
 	install --owner=root --group=root --mode=644 configs/macvlan.sh $(DEST_DATADIR)/
