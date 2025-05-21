@@ -25,6 +25,72 @@ dependencies:
 
 ![](doc/assets/dependencies.png)
 
+The above needs three manually added `override.conf` files:
+
+`sudo systemctl edit netns_outside-veth@nstor.service` adding:
+```
+[Unit]
+# veth@nstor moves ve-nstor1 into nsbrowser.
+Requires=netns_name@nsbrowser.service
+After=netns_name@nsbrowser.service
+```
+
+`sudo systemctl edit netns-nft@nstor.service` adding:
+```
+[Unit]
+# The Network Filter rules of nstor need the macvlan device and ve-nstor2 to exist (see /etc/conf.d/netns/nft-nstor.rules).
+Requires=netns-macvlan@nstor.service netns-veth@nstor.service
+After=netns-macvlan@nstor.service netns-veth@nstor.service
+```
+
+`sudo systemctl edit netns-nft@nsbrowser.service` adding:
+```
+[Unit]
+# The Network Filter rules of nsbrowser need ve-nstor1 to exist (see /etc/conf.d/netns/nft-nsbrowser.rules).
+Requires=netns-veth@nstor.service
+After=netns-veth@nstor.service
+```
+
+And of course a few configuration files:
+```
+$ cat /etc/conf.d/netns/veth-nstor.conf
+# VETH creates a veth pair of devices (a virtual patch cable between network namespaces).
+# The names of two devices can be specified here as
+#
+VETH_IFNAME_OUTSIDE=ve-nstor1
+VETH_IFNAME_INSIDE=ve-nstor2
+#
+# Be aware that these names may not be longer than 15 characters.
+#
+# The names should include the network namespace because their can be multiple
+# veth pairs being used by multiple network namespace, of course.
+#
+# The IP addresses to use for both devices.
+VETH_IFADDR_OUTSIDE=10.0.1.1/24
+VETH_IFADDR_INSIDE=10.0.1.2/24
+
+# The inside netns will be nstor.
+# We can also specify a netns for the 'outside' (then also on an 'inside'):
+VETH_NSNAME_OUTSIDE=nsbrowser
+
+# If the above is used then that netns must be active
+# before we start netns_outside-veth@nstor. This can be achieved
+# by doing:
+#
+#   sudo systemctl edit netns_outside-veth@nstor
+#
+# and adding the lines:
+#
+#   [Unit]
+#   Requires=netns_name@nsbrowser.service
+#   After=netns_name@nsbrowser.service
+#
+# where `nsbrowser` is the namespace that you used for VETH_NSNAME_OUTSIDE.
+```
+
+As well as `/etc/conf.d/netns/nft-nstor.rules` and `/etc/conf.d/netns/nft-nsbrowser.rules` for
+the firewall rules (see below).
+
 ## Usage
 
 Below `NSTYPE` and `NSNAME` are arbitrary strings existing of alpha-numerical
