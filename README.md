@@ -180,11 +180,11 @@ is put in the host namespace and the other (called `${VETH_IFNAME_INSIDE}`, or i
 in the netns `NSNAME`. ***Note that `VETH_IFNAME` in turn defaults to `ve-` if not set***.
 
 ***Important:*** if you use ifnames on the *host* (aka, the default `outside`) that start with `ve-` then `systemd-networkd` will reconfigure them because of
-`/usr/lib/systemd/network/80-container-ve.network` and `/usr/lib/systemd/network/80-container-ve.link`. If you don't
-use `systemd-nspawn` then you might want to mask `80-container-ve.network` by adding, for example, `/etc/systemd/network/79-systemd-netns-ve.network`
-with contents
+`/usr/lib/systemd/network/80-container-ve.network`.
+If you don't use `systemd-nspawn` then you might want to mask it with `ln -s /dev/null /etc/systemd/network/80-container-ve.network`
+or override `80-container-ve.network` by adding a file `/etc/systemd/network/75-systemd-netns-ve.network` with for example the contents
 ```
-# Mask 80-container-ve.network, to stop systemd-networkd from
+# Override 80-container-ve.network, to stop systemd-networkd from
 # changing configuration added by systemd-netns.
 
 [Match]
