@@ -177,7 +177,32 @@ for short, are a pair of devices where packets transmitted on one device are imm
 
 When using `netns-veth@NSNAME.service`, one device (called `${VETH_IFNAME_OUTSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}${NS_NAME}0`)
 is put in the host namespace and the other (called `${VETH_IFNAME_INSIDE}`, or if that isn't defined defaulting to `${VETH_IFNAME}${NS_NAME}1`) is put
-in the netns `NSNAME`. Note that `VETH_IFNAME` in turn defaults to `ve-` if not set.
+in the netns `NSNAME`. ***Note that `VETH_IFNAME` in turn defaults to `ve-` if not set***.
+
+***Important:*** if you use ifnames that start with `ve-` then `systemd-networkd` will reconfigure them because of
+`/usr/lib/systemd/network/80-container-ve.network` and `/usr/lib/systemd/network/80-container-ve.link`. If you don't
+use `systemd-nspawn` then you might want to mask `80-container-ve.network` by adding, for example, `/etc/systemd/network/79-systemd-netns-ve.network`
+with contents
+```
+# Mask 80-container-ve.network, to stop systemd-networkd from
+# changing configuration added by systemd-netns.
+
+[Match]
+Kind=veth
+Name=ve-*
+
+[Link]
+RequiredForOnline=no
+
+[Network]
+# Default to using a /24 prefix.
+Address=0.0.0.0/24
+KeepMaster=yes
+IPMasquerade=ipv4
+
+# Keep addresses added with `ip addr`.
+KeepConfiguration=static
+```
 
 It is possible to put the first device also in a netns by defining `VETH_NSNAME_OUTSIDE` (in, for example, `/etc/conf.d/netns/veth-NSNAME.conf`)
 but then one must assure that `netns_name@VETH_NSNAME_OUTSIDE.service` is active before `netns_outside-veth@NSNAME.service` is activated.
